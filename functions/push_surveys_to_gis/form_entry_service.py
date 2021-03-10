@@ -26,8 +26,7 @@ class FormEntryService:
                 ]["FCA_PROJECT"],
                 "rd_x_coordinaat": form_entry["geometry"]["coordinates"][0],
                 "rd_y_coordinaat": form_entry["geometry"]["coordinates"][1],
-                "foto_bop": form_entry_properties["Entry"]["AnswersJson"][
-                    "AFRONDEN_PAGE"
-                ]["FCA_FOTO_GEVEL"],
             },
-        }
+        }, form_entry_properties["Entry"]["AnswersJson"]["AFRONDEN_PAGE"][
+            "FCA_FOTO_GEVEL"
+        ]
