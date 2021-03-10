@@ -1,12 +1,11 @@
-import logging
 import json
+import logging
 
-from google.cloud import storage
-
+import config
 from coordinate_service import CoordinateService
+from google.cloud import storage
 from image_service import ImageService
 from publish_service import PublishService
-import config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,10 +23,14 @@ def handler(data, context):
     filename = data["name"]
 
     if not filename.startswith(config.ENTRY_FILEPATH_PREFIX):
-        logging.info(f"Skip file gs://{bucket_name}/{filename}: File is not in {config.ENTRY_FILEPATH_PREFIX}")
+        logging.info(
+            f"Skip file gs://{bucket_name}/{filename}: File is not in {config.ENTRY_FILEPATH_PREFIX}"
+        )
         return
 
-    logging.info(f"Processing APPEEE form input from file gs://{bucket_name}/{filename}")
+    logging.info(
+        f"Processing APPEEE form input from file gs://{bucket_name}/{filename}"
+    )
 
     # Retrieve form entry
     storage_client = storage.Client()
@@ -36,7 +39,7 @@ def handler(data, context):
     form_entry = json.loads(entry_blob.download_as_string())
 
     # Download images
-    logging.info('Downloading images')
+    logging.info("Downloading images")
     form_entry = ImageService(storage_client).download_images_for_form_entry(form_entry)
 
     # Add coordinates and convert to geojson.
@@ -44,7 +47,7 @@ def handler(data, context):
     geo_json = coordinate_service.download_coordinates_for_form_entry(form_entry)
 
     # Publish form entry
-    publish_service = PublishService(config.TOPIC_NAME)
+    publish_service = PublishService(config.TOPIC_NAME, context)
     publish_service.publish_message(geo_json)
 
 
