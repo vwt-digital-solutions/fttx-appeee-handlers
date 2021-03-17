@@ -72,7 +72,11 @@ class GISService:
                     f"server responded with status {response['error']['code']}: "
                     f"{response['error']['message']}"
                 )
-            return response["addAttachmentResult"]["objectId"]
+
+            attachment_id = response["addAttachmentResult"]["objectId"]
+            logging.info(f"Uploaded attachment to feature with ID {attachment_id}")
+
+            return attachment_id
         except json.decoder.JSONDecodeError as e:
             logging.error(f"Status-code: {r.status_code}")
             logging.error(f"Output:\n{r.text}")
@@ -94,6 +98,10 @@ class GISService:
                     f"server responded with status {response['error']['code']}: "
                     f"{response['error']['message']}"
                 )
+
+            logging.info(
+                f"Added attachment with ID {attachment_id} to feature with ID {feature_id}"
+            )
             return
         except json.decoder.JSONDecodeError as e:
             logging.error(f"Status-code: {r.status_code}")
