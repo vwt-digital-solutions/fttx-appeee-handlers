@@ -10,6 +10,16 @@ class StorageService:
         self.stg_client = storage.Client()
 
     def get_image(self, image_uri, temp_file_name):
+        """
+        Get an image from Google Cloud Storage
+
+        :param image_uri: Image URI
+        :param temp_file_name: Temporary file name
+
+        :return: Content-type, File name
+        :rtype: (str, str)
+        """
+
         # Get bucket and file name from uri (gs://[BUCKET_NAME]/[FILE_NAME])
         gcs_uri_match = re.match(r"^gs://([a-zA-Z0-9-_]*)/(.*)$", image_uri)
         bucket_name = gcs_uri_match.group(1)

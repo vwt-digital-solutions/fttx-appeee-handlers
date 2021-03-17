@@ -15,6 +15,13 @@ class GISService:
         self.token = self._get_feature_service_token()
 
     def _get_feature_service_token(self):
+        """
+        Request a new feature service token
+
+        :return: Token
+        :rtype: str
+        """
+
         data = {
             "f": "json",
             "username": GIS_FEATURE_SERVICE_AUTHENTICATION["username"],
@@ -31,6 +38,15 @@ class GISService:
         return data["token"]
 
     def add_object_to_feature_layer(self, gis_object):
+        """
+        Add a new GIS object to feature layer
+
+        :param gis_object: GIS object
+
+        :return: Feature ID
+        :rtype: int
+        """
+
         data = {"adds": json.dumps([gis_object]), "f": "json", "token": self.token}
 
         r = self.requests_session.post(f"{GIS_FEATURE_SERVICE}/applyEdits", data=data)
@@ -56,6 +72,18 @@ class GISService:
     def upload_attachment_to_feature_layer(
         self, feature_id, file_type, file_name, file_content
     ):
+        """
+        Upload an attachment to a feature
+
+        :param feature_id: Feature ID
+        :param file_type: File content type
+        :param file_name: File name
+        :param file_content: File binary content
+
+        :return: Attachment ID
+        :rtype: int
+        """
+
         data = {"f": "json", "token": self.token}
 
         files = [("attachment", (file_name, file_content, file_type))]
@@ -83,6 +111,14 @@ class GISService:
             logging.exception(e)
 
     def add_attachment_to_feature_layer(self, feature, feature_id, attachment_id):
+        """
+        Add an attachment to feature
+
+        :param feature: Feature object
+        :param feature_id: Feature ID
+        :param attachment_id: Attachment ID
+        """
+
         feature["attributes"]["objectid"] = int(feature_id)
         feature["attributes"]["foto_bop_att_id"] = int(attachment_id)
 
