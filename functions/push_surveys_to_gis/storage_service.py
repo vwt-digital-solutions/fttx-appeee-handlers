@@ -14,7 +14,9 @@ class StorageService:
         Get an image from Google Cloud Storage
 
         :param image_uri: Image URI
+        :type image_uri: str
         :param temp_file_name: Temporary file name
+        :type temp_file_name: str
 
         :return: Content-type, File name
         :rtype: (str, str)

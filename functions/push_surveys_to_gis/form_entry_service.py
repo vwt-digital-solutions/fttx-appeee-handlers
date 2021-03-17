@@ -1,5 +1,16 @@
 class FormEntryService:
-    def convert_form_entry_to_gis_object(self, form_entry_collection):
+    @staticmethod
+    def convert_form_entry_to_gis_object(form_entry_collection):
+        """
+        Convert form entry to formatted GIS object
+
+        :param form_entry_collection: Form entry collection
+        :type form_entry_collection: dict
+
+        :return GIS object
+        :rtype: dict
+        """
+
         form_entry = form_entry_collection["features"][0]
         form_entry_properties = form_entry["properties"]
 

@@ -42,6 +42,7 @@ class GISService:
         Add a new GIS object to feature layer
 
         :param gis_object: GIS object
+        :type gis_object: dict
 
         :return: Feature ID
         :rtype: int
@@ -76,9 +77,13 @@ class GISService:
         Upload an attachment to a feature
 
         :param feature_id: Feature ID
+        :type feature_id: int
         :param file_type: File content type
+        :type file_type: str
         :param file_name: File name
+        :type file_name: str
         :param file_content: File binary content
+        :type file_content: str
 
         :return: Attachment ID
         :rtype: int
@@ -115,8 +120,11 @@ class GISService:
         Add an attachment to feature
 
         :param feature: Feature object
+        :type feature: dict
         :param feature_id: Feature ID
+        :type feature_id: int
         :param attachment_id: Attachment ID
+        :type attachment_id: int
         """
 
         feature["attributes"]["objectid"] = int(feature_id)
