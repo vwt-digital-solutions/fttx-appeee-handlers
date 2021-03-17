@@ -43,16 +43,22 @@ class GISService:
                     f"server responded with status {response['error']['code']}: "
                     f"{response['error']['message']}"
                 )
-            return response[0]
+
+            feature_id = response["addResults"][0]["objectId"]
+            logging.info(f"Added new feature to map with ID {feature_id}")
+
+            return feature_id
         except json.decoder.JSONDecodeError as e:
             logging.error(f"Status-code: {r.status_code}")
             logging.error(f"Output:\n{r.text}")
             logging.exception(e)
 
-    def upload_attachment_to_feature_layer(self, feature_id, image_bytes):
+    def upload_attachment_to_feature_layer(
+        self, feature_id, file_type, file_name, file_content
+    ):
         data = {"f": "json", "token": self.token}
 
-        files = [("attachment", image_bytes)]
+        files = [("attachment", (file_name, file_content, file_type))]
 
         r = self.requests_session.post(
             f"{GIS_FEATURE_SERVICE}/{feature_id}/addAttachment", data=data, files=files
@@ -72,8 +78,9 @@ class GISService:
             logging.error(f"Output:\n{r.text}")
             logging.exception(e)
 
-    def add_attachment_to_feature_layer(self, feature, attachment_id):
-        feature["foto_bop_att_id"] = str(attachment_id)
+    def add_attachment_to_feature_layer(self, feature, feature_id, attachment_id):
+        feature["attributes"]["objectid"] = int(feature_id)
+        feature["attributes"]["foto_bop_att_id"] = int(attachment_id)
 
         data = {"updates": json.dumps([feature]), "f": "json", "token": self.token}
 
@@ -87,7 +94,7 @@ class GISService:
                     f"server responded with status {response['error']['code']}: "
                     f"{response['error']['message']}"
                 )
-            return response[0]
+            return
         except json.decoder.JSONDecodeError as e:
             logging.error(f"Status-code: {r.status_code}")
             logging.error(f"Output:\n{r.text}")
