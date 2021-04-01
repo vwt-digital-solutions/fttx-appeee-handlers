@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -29,6 +30,7 @@ class CoordinateService:
         data = self.requests_session.post(
             COORDINATE_SERVICE_AUTHENTICATION["url"], data
         ).json()
+
         return data["token"]
 
     def download_coordinates_for_form_entry(self, form_entry):
@@ -57,6 +59,8 @@ class CoordinateService:
         else:
             query_string = f"{query_string} AND huisext IS NULL"
 
+        logging.info(f"Querying: {query_string}")
+
         url_parameters = {"where": query_string, "f": "json", "token": self.token}
         url_query_string = urllib.parse.urlencode(url_parameters)
 
@@ -65,13 +69,18 @@ class CoordinateService:
         data = self.requests_session.get(url).json()
 
         features = data.get("features", [])
-        if len(features) == 0:
+        if len(features) > 0:
+            geometry = features[0]["geometry"]
+        elif "features" not in data:
+            logging.error(
+                f"Error occured when downloading coordinates. Request not successful: {json.dumps(data)}"
+            )
+            geometry = {"x": 0, "y": 0}
+        else:
             logging.error(
                 "Error occured when downloading coordinates. Feature not found on feature server."
             )
             geometry = {"x": 0, "y": 0}
-        else:
-            geometry = features[0]["geometry"]
 
         geo_json = self.convert_form_entry_to_geojson(form_entry, geometry)
 
