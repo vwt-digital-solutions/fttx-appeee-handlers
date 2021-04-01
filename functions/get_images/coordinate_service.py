@@ -32,21 +32,30 @@ class CoordinateService:
         return data["token"]
 
     def download_coordinates_for_form_entry(self, form_entry):
-        address_data = form_entry["Entry"]["AnswersJson"]["SCHOUW_GEGEVENS_PAGE"]
+        # Split incoming FCA_SLEUTEL: "1234AB56_78" -> ["1234AB56", "78"]
+        address = form_entry["Entry"]["AnswersJson"]["SCHOUW_GEGEVENS_PAGE"][
+            "FCA_SLEUTEL"
+        ].split("_")
+        address_postcode = address[0]
+        address_ext = address[1] if len(address) > 1 else None
 
-        post_code = address_data["FCA_SLEUTEL"][:6]
-        house_number = re.findall("\\d+", address_data["FCA_SLEUTEL"][6:])[0]
+        # Regex postcode and housenumber (1234AB56)
+        post_code = re.findall(r"^([0-9]{4}[a-zA-Z]{2})", address_postcode)[
+            0
+        ]  # [1234AB]56
+        house_number = re.findall(
+            r"^([0-9]+)", address_postcode.replace(post_code, "")
+        )[
+            0
+        ]  # 1234AB[56]
 
         query_string = f"postcode='{post_code}' AND huisnummer='{house_number}'"
 
-        try:
-            house_number_ext = re.findall(
-                "[a-z,A-Z]+", address_data["FCA_SLEUTEL"][6:]
-            )[0]
-        except IndexError:
-            query_string = f"{query_string} AND huisext IS NULL"
+        # Query on huisext if available (78)
+        if address_ext:
+            query_string = f"{query_string} AND huisext='{address_ext}'"
         else:
-            query_string = f"{query_string} AND huisext='{house_number_ext}'"
+            query_string = f"{query_string} AND huisext IS NULL"
 
         url_parameters = {"where": query_string, "f": "json", "token": self.token}
         url_query_string = urllib.parse.urlencode(url_parameters)
