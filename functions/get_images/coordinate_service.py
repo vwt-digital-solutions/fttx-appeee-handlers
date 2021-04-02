@@ -94,8 +94,8 @@ class CoordinateService:
 
     @staticmethod
     def convert_form_entry_to_geojson(form_entry, attributes):
-        latitude = attributes.get(COORDINATE_SERVICE_LATLON[0], 0)
-        longitude = attributes.get(COORDINATE_SERVICE_LATLON[1], 0)
+        latitude = float(attributes.get(COORDINATE_SERVICE_LATLON[0], 0))
+        longitude = float(attributes.get(COORDINATE_SERVICE_LATLON[1], 0))
 
         return {
             "type": "FeatureCollection",
