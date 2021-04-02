@@ -1,6 +1,7 @@
 import logging
 from mimetypes import guess_type
 from os import path
+from urllib.parse import quote_plus
 
 import config
 import constant
@@ -88,9 +89,10 @@ class ImageService:
 
                         form_entry[constant.ENTRY_KEY][constant.ANSWERS_PAGES_KEY][
                             page_k
-                        ][
-                            answer_k
-                        ] = f"https://storage.cloud.google.com/{config.IMAGE_STORE_BUCKET}/{file_store_path}"
+                        ][answer_k] = (
+                            f"https://storage.googleapis.com/storage/v1/b/{config.IMAGE_STORE_BUCKET}/"
+                            f"o/{quote_plus(file_store_path)}?alt=media"
+                        )
                     else:
                         logging.error(
                             f"Error downloading {file_download_url}, response {file_response.status_code}: {file_response.text}"
