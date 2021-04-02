@@ -4,7 +4,8 @@ import os
 import re
 import urllib
 
-from config import COORDINATE_SERVICE, COORDINATE_SERVICE_AUTHENTICATION
+from config import (COORDINATE_SERVICE, COORDINATE_SERVICE_AUTHENTICATION,
+                    COORDINATE_SERVICE_LATLON)
 from requests_retry_session import get_requests_session
 from utils import get_secret
 
@@ -61,32 +62,41 @@ class CoordinateService:
 
         logging.info(f"Querying: {query_string}")
 
-        url_parameters = {"where": query_string, "f": "json", "token": self.token}
-        url_query_string = urllib.parse.urlencode(url_parameters)
+        url_query_string = urllib.parse.urlencode(
+            {
+                "where": query_string,
+                "outFields": ",".join(COORDINATE_SERVICE_LATLON),
+                "f": "json",
+                "token": self.token,
+            }
+        )
 
         url = f"{COORDINATE_SERVICE}/query?{url_query_string}"
 
         data = self.requests_session.get(url).json()
 
+        geometry = {}
         features = data.get("features", [])
         if len(features) > 0:
-            geometry = features[0]["geometry"]
+            geometry = features[0]["attributes"]
         elif "features" not in data:
             logging.error(
                 f"Error occured when downloading coordinates. Request not successful: {json.dumps(data)}"
             )
-            geometry = {"x": 0, "y": 0}
         else:
             logging.error(
                 "Error occured when downloading coordinates. Feature not found on feature server."
             )
-            geometry = {"x": 0, "y": 0}
 
         geo_json = self.convert_form_entry_to_geojson(form_entry, geometry)
 
         return geo_json
 
-    def convert_form_entry_to_geojson(self, form_entry, geometry):
+    @staticmethod
+    def convert_form_entry_to_geojson(form_entry, attributes):
+        latitude = attributes.get(COORDINATE_SERVICE_LATLON[0], 0)
+        longitude = attributes.get(COORDINATE_SERVICE_LATLON[1], 0)
+
         return {
             "type": "FeatureCollection",
             "features": [
@@ -94,7 +104,7 @@ class CoordinateService:
                     "type": "Feature",
                     "geometry": {
                         "type": "Point",
-                        "coordinates": [geometry["x"], geometry["y"]],
+                        "coordinates": [latitude, longitude],
                     },
                     "properties": form_entry,
                 }
