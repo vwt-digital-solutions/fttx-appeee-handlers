@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import re
-import urllib
+from urllib.parse import urlencode
 
 from config import (COORDINATE_SERVICE, COORDINATE_SERVICE_AUTHENTICATION,
                     COORDINATE_SERVICE_LATLON)
@@ -60,9 +60,7 @@ class CoordinateService:
         else:
             query_string = f"{query_string} AND huisext IS NULL"
 
-        logging.info(f"Querying: {query_string}")
-
-        url_query_string = urllib.parse.urlencode(
+        url_query_string = urlencode(
             {
                 "where": query_string,
                 "outFields": ",".join(COORDINATE_SERVICE_LATLON),
