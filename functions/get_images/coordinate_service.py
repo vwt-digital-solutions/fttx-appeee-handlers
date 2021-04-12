@@ -102,7 +102,7 @@ class CoordinateService:
                     "type": "Feature",
                     "geometry": {
                         "type": "Point",
-                        "coordinates": [latitude, longitude],
+                        "coordinates": [longitude, latitude],
                     },
                     "properties": form_entry,
                 }
