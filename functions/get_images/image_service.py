@@ -67,7 +67,17 @@ class ImageService:
                         f"Answer on {answer_k} is an image: {answer_v}, start downloading"
                     )
                     file_download_url = f"{image_download_base_url}{answer_v}"
-                    file_response = self.requests_session.get(file_download_url)
+
+                    try:
+                        file_response = self.requests_session.get(file_download_url)
+                    except (
+                        requests.exceptions.ConnectionError,
+                        requests.exceptions.HTTPError,
+                    ) as e:
+                        logging.error(
+                            f"Error downloading {file_download_url}, response: {str(e)}"
+                        )
+                        continue
 
                     if file_response.status_code == requests.codes.ok:
                         file_store_path = (
