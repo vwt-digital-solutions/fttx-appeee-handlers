@@ -82,9 +82,7 @@ class CoordinateService:
                 f"Error occured when downloading coordinates. Request not successful: {json.dumps(data)}"
             )
         else:
-            logging.error(
-                "Error occured when downloading coordinates. Feature not found on feature server."
-            )
+            logging.info("Feature not found on feature server, skipping this.")
 
         geo_json = self.convert_form_entry_to_geojson(form_entry, geometry)
 
