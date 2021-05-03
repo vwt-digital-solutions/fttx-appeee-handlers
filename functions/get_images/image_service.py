@@ -73,6 +73,7 @@ class ImageService:
                     except (
                         requests.exceptions.ConnectionError,
                         requests.exceptions.HTTPError,
+                        requests.exceptions.RetryError,
                     ) as e:
                         logging.error(
                             f"Error downloading {file_download_url}, response: {str(e)}"
