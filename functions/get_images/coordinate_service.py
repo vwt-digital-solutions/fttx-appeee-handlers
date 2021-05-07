@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -114,24 +113,34 @@ class CoordinateService:
             }
         )
 
-        url = f"{COORDINATE_SERVICE}/query?{url_query_string}"
-
-        data = self.requests_session.get(url).json()
-
         geometry = {}
-        features = data.get("features", [])
-        if len(features) > 0:
-            geometry = features[0]["attributes"]
-        elif "features" not in data:
-            logging.error(
-                f"Error occured when downloading coordinates. Request not successful: {json.dumps(data)}"
-            )
+
+        try:
+            data = self.query_feature_layer(url_query_string)
+        except (ConnectionError, HTTPError, JSONDecodeError) as e:
+            logging.error(f"Error occurred when downloading coordinates: {str(e)}")
         else:
-            logging.info("Feature not found on feature server, skipping this.")
+            if len(data.get("features", [])) > 0:
+                geometry = data["features"][0]["attributes"]
+            else:
+                logging.info("Feature not found on feature server, skipping this.")
 
         geo_json = self.convert_form_entry_to_geojson(form_entry, geometry)
 
         return geo_json
+
+    @retry(
+        (ConnectionError, HTTPError, JSONDecodeError),
+        tries=3,
+        delay=5,
+        logger=None,
+        backoff=2,
+    )
+    def query_feature_layer(self, url_query_string):
+        url = f"{COORDINATE_SERVICE}/query?{url_query_string}"
+        data = self.requests_session.get(url).json()
+
+        return data
 
     @staticmethod
     def convert_form_entry_to_geojson(form_entry, attributes):
