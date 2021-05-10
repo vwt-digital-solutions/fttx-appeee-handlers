@@ -1,12 +1,14 @@
-import json
 import logging
 import os
 import re
+from json.decoder import JSONDecodeError
 from urllib.parse import urlencode
 
 from config import (COORDINATE_SERVICE, COORDINATE_SERVICE_AUTHENTICATION,
                     COORDINATE_SERVICE_LATLON)
+from requests.exceptions import ConnectionError, HTTPError
 from requests_retry_session import get_requests_session
+from retry import retry
 from utils import get_secret
 
 
@@ -18,7 +20,40 @@ class CoordinateService:
         self.token = self._get_feature_service_token()
 
     def _get_feature_service_token(self):
-        data = {
+        """
+        Request a new feature service token
+
+        :return: Token
+        :rtype: str
+        """
+
+        try:
+            return self.get_arcgis_token()
+        except KeyError as e:
+            logging.error(
+                f"Function is missing authentication configuration for retrieving ArcGIS token: {str(e)}"
+            )
+            return None
+        except (ConnectionError, HTTPError, JSONDecodeError) as e:
+            logging.error(f"An error occurred when retrieving ArcGIS token: {str(e)}")
+            return None
+
+    @retry(
+        (ConnectionError, HTTPError, JSONDecodeError),
+        tries=3,
+        delay=5,
+        logger=None,
+        backoff=2,
+    )
+    def get_arcgis_token(self):
+        """
+        Get token from ArcGIS
+
+        :return: Token
+        :rtype: str
+        """
+
+        request_data = {
             "f": "json",
             "username": COORDINATE_SERVICE_AUTHENTICATION["username"],
             "password": get_secret(
@@ -28,11 +63,20 @@ class CoordinateService:
             "referer": COORDINATE_SERVICE_AUTHENTICATION["referer"],
         }
 
-        data = self.requests_session.post(
-            COORDINATE_SERVICE_AUTHENTICATION["url"], data
-        ).json()
+        gis_r = self.requests_session.post(
+            COORDINATE_SERVICE_AUTHENTICATION["url"], request_data
+        )
+        gis_r.raise_for_status()
 
-        return data["token"]
+        r_json = gis_r.json()
+
+        if "token" in r_json:
+            return r_json["token"]
+
+        logging.error(
+            f"An error occurred when retrieving ArcGIS token: {r_json.get('error', gis_r.content)}"
+        )
+        return None
 
     def download_coordinates_for_form_entry(self, form_entry):
         # Split incoming FCA_SLEUTEL: "1234AB56_78" -> ["1234AB56", "78"]
@@ -69,24 +113,34 @@ class CoordinateService:
             }
         )
 
-        url = f"{COORDINATE_SERVICE}/query?{url_query_string}"
-
-        data = self.requests_session.get(url).json()
-
         geometry = {}
-        features = data.get("features", [])
-        if len(features) > 0:
-            geometry = features[0]["attributes"]
-        elif "features" not in data:
-            logging.error(
-                f"Error occured when downloading coordinates. Request not successful: {json.dumps(data)}"
-            )
+
+        try:
+            data = self.query_feature_layer(url_query_string)
+        except (ConnectionError, HTTPError, JSONDecodeError) as e:
+            logging.error(f"Error occurred when downloading coordinates: {str(e)}")
         else:
-            logging.info("Feature not found on feature server, skipping this.")
+            if len(data.get("features", [])) > 0:
+                geometry = data["features"][0]["attributes"]
+            else:
+                logging.info("Feature not found on feature server, skipping this.")
 
         geo_json = self.convert_form_entry_to_geojson(form_entry, geometry)
 
         return geo_json
+
+    @retry(
+        (ConnectionError, HTTPError, JSONDecodeError),
+        tries=3,
+        delay=5,
+        logger=None,
+        backoff=2,
+    )
+    def query_feature_layer(self, url_query_string):
+        url = f"{COORDINATE_SERVICE}/query?{url_query_string}"
+        data = self.requests_session.get(url).json()
+
+        return data
 
     @staticmethod
     def convert_form_entry_to_geojson(form_entry, attributes):
