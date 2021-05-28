@@ -34,8 +34,11 @@ class CoordinateService:
                 f"Function is missing authentication configuration for retrieving ArcGIS token: {str(e)}"
             )
             return None
-        except (ConnectionError, HTTPError, JSONDecodeError) as e:
+        except (ConnectionError, HTTPError) as e:
             logging.error(f"An error occurred when retrieving ArcGIS token: {str(e)}")
+            return None
+        except JSONDecodeError as e:
+            logging.debug(f"An error occurred when retrieving ArcGIS token: {str(e)}")
             return None
 
     @retry(
