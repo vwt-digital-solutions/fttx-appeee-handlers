@@ -44,7 +44,9 @@ def handler(data, context):
 
     # Add coordinates and convert to geojson.
     coordinate_service = CoordinateService()
-    geo_json = coordinate_service.download_coordinates_for_form_entry(form_entry)
+    geo_json = coordinate_service.download_coordinates_for_form_entry(
+        form_entry, config.COORDINATE_SERVICE_KEYFIELD
+    )
 
     # Publish form entry
     publish_service = PublishService(config.TOPIC_NAME, context)
