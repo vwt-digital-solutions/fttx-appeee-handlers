@@ -49,8 +49,9 @@ def handler(data, context):
     )
 
     # Publish form entry
-    publish_service = PublishService(config.TOPIC_NAME, context)
-    publish_service.publish_message(geo_json)
+    if geo_json:
+        publish_service = PublishService(config.TOPIC_NAME, context)
+        publish_service.publish_message(geo_json)
 
 
 if __name__ == "__main__":

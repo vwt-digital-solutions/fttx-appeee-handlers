@@ -90,6 +90,7 @@ class CoordinateService:
             logging.info(
                 f"Feature does not contain '{key_field_mapping}' field, skipping this."
             )
+            return None
 
         address = form_sleutel.split("_")
 
@@ -129,11 +130,13 @@ class CoordinateService:
             data = self.query_feature_layer(url_query_string)
         except (ConnectionError, HTTPError, JSONDecodeError) as e:
             logging.error(f"Error occurred when downloading coordinates: {str(e)}")
+            return None
         else:
             if len(data.get("features", [])) > 0:
                 geometry = data["features"][0]["attributes"]
             else:
                 logging.info("Feature not found on feature server, skipping this.")
+                return None
 
         geo_json = self.convert_form_entry_to_geojson(form_entry, geometry)
 
