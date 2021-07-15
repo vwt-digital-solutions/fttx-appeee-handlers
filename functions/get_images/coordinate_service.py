@@ -1,6 +1,8 @@
 import logging
+import operator
 import os
 import re
+from functools import reduce
 from json.decoder import JSONDecodeError
 from urllib.parse import urlencode
 
@@ -81,11 +83,16 @@ class CoordinateService:
         )
         return None
 
-    def download_coordinates_for_form_entry(self, form_entry):
-        # Split incoming FCA_SLEUTEL: "1234AB56_78" -> ["1234AB56", "78"]
-        address = form_entry["Entry"]["AnswersJson"]["SCHOUW_GEGEVENS_PAGE"][
-            "FCA_SLEUTEL"
-        ].split("_")
+    def download_coordinates_for_form_entry(self, form_entry, key_field_mapping):
+        # Split incoming key-field: "1234AB56_78" -> ["1234AB56", "78"]
+        form_sleutel = get_from_dict(form_entry, key_field_mapping.split("/"))
+        if not form_sleutel:
+            logging.info(
+                f"Feature does not contain '{key_field_mapping}' field, skipping this."
+            )
+
+        address = form_sleutel.split("_")
+
         address_postcode = address[0]
         address_ext = address[1] if len(address) > 1 else None
 
@@ -163,3 +170,13 @@ class CoordinateService:
                 }
             ],
         }
+
+
+def get_from_dict(data_dict, map_list):
+    """Returns a dictionary based on a mapping"""
+    try:
+        data = reduce(operator.getitem, map_list, data_dict)
+    except (KeyError, AttributeError, TypeError):
+        return None
+    else:
+        return data
