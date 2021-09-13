@@ -14,7 +14,7 @@ class ImageService:
     def __init__(self, storage_client):
         self.storage_client = storage_client
         self.requests_session = get_requests_session(
-            retries=15, backoff=600, status_forcelist=(404, 500, 502, 503, 504)
+            retries=6, backoff=10, status_forcelist=(404, 500, 502, 503, 504)
         )
 
     def _compose_image_store_base_path(self, form_entry):
