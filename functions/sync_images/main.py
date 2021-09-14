@@ -10,13 +10,18 @@ logging.basicConfig(level=logging.INFO)
 
 def handler(request):
     # Initializing components
-    logging.info("Initializing storage.")
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(config.FORM_STORE_BUCKET)
 
     # Getting all form blobs
-    logging.info("Retrieving forms from bucket.")
     form_blobs = bucket.list_blobs(prefix=config.FORM_STORE_PATH)
+
+    result = {
+        "total_form_count": len(form_blobs),
+        "form_with_missing_attachment_count": 0,
+        "missing_attachment_count": 0,
+        "downloaded_attachment_count": 0
+    }
 
     # Scanning forms
     for form_blob in form_blobs:
@@ -31,31 +36,35 @@ def handler(request):
             )
             continue
 
-        has_update = False
+        missing_attachments = [att for att in form.attachments if not att.exists_in_bucket(bucket)]
 
-        logging.info(f"Found {len(form.attachments)} attachments in {form_blob.name}.")
+        if not missing_attachments:
+            continue
 
-        for attachment in form.attachments:
-            if attachment.exists_in_bucket(bucket):
-                continue
+        missing_attachment_count = len(missing_attachments)
+        result["form_with_missing_attachment_count"] += 1
+        result["missing_attachment_count"] += missing_attachment_count
 
+        logging.info(
+            f"Found {missing_attachment_count} missing attachments for {form_blob.name}, "
+            "attempting to download..."
+        )
+
+        for attachment in missing_attachments:
             success, response = attachment.download_to_bucket(bucket)
-
-            if not success:
+            if success:
+                result["downloaded_attachment_count"] += 1
+            else:
                 logging.error(
                     "Error downloading image.\n"
                     f"URL: {attachment.download_url}\n"
                     f"Bucket path: {attachment.bucket_path}\n"
                     f"Response: {response}"
                 )
-            else:
-                has_update = True
 
-        if has_update:
-            logging.info(f"Found missing attachments in {form_blob.name}.")
-            form.send_to_arcgis()
-        else:
-            logging.info("No missing attachments found.")
+        logging.info("Download(s) complete.")
+
+    return json.dumps(result), 200
 
 
 if __name__ == "__main__":
