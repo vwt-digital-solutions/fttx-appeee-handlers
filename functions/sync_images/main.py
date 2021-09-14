@@ -10,10 +10,12 @@ logging.basicConfig(level=logging.INFO)
 
 def handler(request):
     # Initializing components
+    logging.info("Initializing storage.")
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(config.FORM_STORE_BUCKET)
 
     # Getting all form blobs
+    logging.info("Retrieving form from bucket.")
     form_blobs = bucket.list_blobs(prefix=config.FORM_STORE_PATH)
 
     # Scanning forms
