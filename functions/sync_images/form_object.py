@@ -19,7 +19,7 @@ class Attachment:
         """
 
         blob = bucket.get_blob(self.bucket_path)
-        return blob.exists()
+        return blob and blob.exists()
 
     def download_to_bucket(self, bucket):
         """
