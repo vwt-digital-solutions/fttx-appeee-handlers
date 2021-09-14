@@ -21,7 +21,15 @@ def handler(request):
     # Scanning forms
     for form_blob in form_blobs:
         form_data = json.loads(form_blob.download_as_string())
-        form = Form(form_data)
+
+        try:
+            form = Form(form_data)
+        except KeyError as exception:
+            logging.error(
+                f"Invalid form: {form_blob.name}\n"
+                f"Exception: {str(exception)}"
+            )
+            continue
 
         has_update = False
 
