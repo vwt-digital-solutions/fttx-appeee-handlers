@@ -58,6 +58,17 @@ class Form:
 
         return transformed_data
 
+    def set_debug_project(self, project_name):
+        self._raw_data[
+            constant.ENTRY_KEY
+        ][
+            constant.ANSWERS_PAGES_KEY
+        ][
+            "p1_klantgegevens"
+        ][
+            "fca_project"
+        ] = project_name
+
     def _find_attachments(self, survey_pages):
         attachments = []
 

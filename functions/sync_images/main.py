@@ -28,6 +28,9 @@ def handler(request):
     # Retry options
     request_retry_options = arguments.get("request_retry_options", {})
 
+    # fca_project # DEBUG
+    debug_fca_project = arguments.get("debug_fca_project", None)
+
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
 
@@ -87,6 +90,8 @@ def handler(request):
                 logging.info("Download(s) complete.")
 
         if (missing_attachments and not skip_download) or force_arcgis_update:
+            if debug_fca_project:
+                form.set_debug_project(debug_fca_project)
             logging.info("Sending form to ArcGIS...")
             publish_service.publish_form(form)
 
