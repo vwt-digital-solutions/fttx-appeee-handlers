@@ -17,7 +17,7 @@ def handler(request):
     form_blobs = bucket.list_blobs(prefix=config.FORM_STORE_PATH)
 
     result = {
-        "total_form_count": len(form_blobs),
+        "total_form_count": 0,
         "form_with_missing_attachment_count": 0,
         "missing_attachment_count": 0,
         "downloaded_attachment_count": 0
@@ -25,6 +25,7 @@ def handler(request):
 
     # Scanning forms
     for form_blob in form_blobs:
+        result["total_form_count"] += 1
         form_data = json.loads(form_blob.download_as_string())
 
         try:
@@ -57,6 +58,7 @@ def handler(request):
             else:
                 logging.error(
                     "Error downloading image.\n"
+                    f"Form: {form_blob.name}\n"
                     f"URL: {attachment.download_url}\n"
                     f"Bucket path: {attachment.bucket_path}\n"
                     f"Response: {response}"
