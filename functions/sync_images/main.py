@@ -82,7 +82,7 @@ def handler(request, context):
 
                 logging.info("Download(s) complete.")
 
-        if missing_attachments or force_arcgis_update:
+        if (missing_attachments and not skip_download) or force_arcgis_update:
             logging.info("Sending form to ArcGIS...")
             publish_service.publish_form(form)
 
