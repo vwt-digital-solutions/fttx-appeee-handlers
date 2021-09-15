@@ -1,14 +1,17 @@
-import config
 import json
 import logging
 
+from config import IMAGE_STORE_BUCKET, TOPIC_NAME, ENTRY_FILEPATH_PREFIX
 from form_object import Form
 from google.cloud import storage
+
+from functions.sync_images.attachment_service import AttachmentService
+from functions.sync_images.publish_service import PublishService
 
 logging.basicConfig(level=logging.INFO)
 
 
-def handler(request):
+def handler(request, context):
     # Initializing components
     arguments = get_request_arguments(request)
 
@@ -22,10 +25,13 @@ def handler(request):
     force_arcgis_update = arguments.get("force_arcgis_update", False)
 
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(config.IMAGE_STORE_BUCKET)
+    bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
+
+    attachment_service = AttachmentService(storage_client)
+    publish_service = PublishService(TOPIC_NAME, context)
 
     # Getting all form blobs
-    form_blobs = bucket.list_blobs(prefix=config.ENTRY_FILEPATH_PREFIX + form_storage_suffix)
+    form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
 
     result = {
         "total_form_count": 0,
@@ -48,7 +54,7 @@ def handler(request):
             )
             continue
 
-        missing_attachments = [att for att in form.attachments if not att.exists_in_bucket(bucket)]
+        missing_attachments = attachment_service.find_missing_attachments(form)
 
         if missing_attachments:
             missing_attachment_count = len(missing_attachments)
@@ -62,7 +68,7 @@ def handler(request):
                 )
 
                 for attachment in missing_attachments:
-                    success, response = attachment.download_to_bucket(bucket)
+                    success, response = attachment_service.download(attachment)
                     if success:
                         result["downloaded_attachment_count"] += 1
                     else:
@@ -78,7 +84,7 @@ def handler(request):
 
         if missing_attachments or force_arcgis_update:
             logging.info("Sending form to ArcGIS...")
-            form.send_to_arcgis()
+            publish_service.publish_form(form)
 
     return json.dumps(result), 200
 
@@ -100,4 +106,5 @@ def get_request_arguments(request):
 
 if __name__ == "__main__":
     request = None
-    handler(request)
+    context = None
+    handler(request, context)
