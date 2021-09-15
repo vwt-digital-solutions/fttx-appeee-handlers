@@ -2,7 +2,6 @@ import json
 
 from config import COORDINATE_SERVICE_KEYFIELD
 from form_object import Form
-from gobits import Gobits
 from google.cloud.pubsub_v1 import PublisherClient
 
 from coordinate_service import CoordinateService
@@ -11,13 +10,12 @@ from retry import retry
 
 
 class PublishService:
-    def __init__(self, topic_name, context):
+    def __init__(self, topic_name):
         self.requests_session = get_requests_session(
             retries=3, backoff=15, status_forcelist=(404, 500, 502, 503, 504)
         )
         self._publisher = PublisherClient()
         self._topic_name = topic_name
-        self.context = context
         self.coordinate_service = CoordinateService()
 
     @retry(tries=5, delay=5, backoff=2, logger=None)
@@ -39,8 +37,7 @@ class PublishService:
             data, COORDINATE_SERVICE_KEYFIELD
         )
 
-        gobits = Gobits.from_context(context=self.context)
-        message_to_publish = {"gobits": [gobits.to_json()], "appee_survey": data}
+        message_to_publish = {"appee_survey": data}
         self._publisher.publish(
             self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))
         )

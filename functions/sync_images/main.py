@@ -11,7 +11,7 @@ from publish_service import PublishService
 logging.basicConfig(level=logging.INFO)
 
 
-def handler(request, context):
+def handler(request):
     # Initializing components
     arguments = get_request_arguments(request)
 
@@ -28,7 +28,7 @@ def handler(request, context):
     bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
 
     attachment_service = AttachmentService(storage_client)
-    publish_service = PublishService(TOPIC_NAME, context)
+    publish_service = PublishService(TOPIC_NAME)
 
     # Getting all form blobs
     form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
@@ -106,5 +106,4 @@ def get_request_arguments(request):
 
 if __name__ == "__main__":
     request = None
-    context = None
-    handler(request, context)
+    handler(request)
