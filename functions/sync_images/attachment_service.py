@@ -1,8 +1,9 @@
 import requests
 
 from config import IMAGE_STORE_BUCKET
-from mimetypes import guess_type
+
 from form_object import Attachment, Form
+from mimetypes import guess_type
 
 
 class AttachmentService:
@@ -18,6 +19,7 @@ class AttachmentService:
         :param attachment: The attachment to check.
         :type attachment: Attachment
         :return: `True` if attachment exists in the specified bucket, `False` otherwise.
+        :rtype: bool
         """
 
         blob = self.bucket.get_blob(attachment.bucket_path)

@@ -1,9 +1,20 @@
-import constant
 import copy
 
-from config import IMAGE_STORE_PATH, IMAGE_DOWNLOAD_BASE_URL, IMAGE_STORE_BUCKET
-from os import path
+from config import (
+    IMAGE_STORE_PATH,
+    IMAGE_DOWNLOAD_BASE_URL,
+    IMAGE_STORE_BUCKET
+)
+from constant import (
+    PROVIDER_ID_KEY,
+    ENTRY_KEY,
+    DS_ROW_ID_KEY,
+    FORM_CODE_KEY,
+    ANSWERS_PAGES_KEY,
+    IMAGE_FILE_EXTENSIONS
+)
 
+from os import path
 from urllib.parse import quote_plus
 
 
@@ -17,9 +28,9 @@ class Attachment:
 
 class Form:
     def __init__(self, data):
-        provider_id = data[constant.PROVIDER_ID_KEY]
-        ds_row_id = data[constant.ENTRY_KEY][constant.DS_ROW_ID_KEY]
-        form_code = data[constant.ENTRY_KEY][constant.FORM_CODE_KEY]
+        provider_id = data[PROVIDER_ID_KEY]
+        ds_row_id = data[ENTRY_KEY][DS_ROW_ID_KEY]
+        form_code = data[ENTRY_KEY][FORM_CODE_KEY]
 
         self._raw_data = data
 
@@ -32,7 +43,7 @@ class Form:
         )
 
         self.attachments = self._find_attachments(
-            data[constant.ENTRY_KEY][constant.ANSWERS_PAGES_KEY]
+            data[ENTRY_KEY][ANSWERS_PAGES_KEY]
         )
 
     def to_compiled_data(self):
@@ -44,9 +55,9 @@ class Form:
         # Updating the attachment location to the bucket attachment's bucket location.
         for attachment in self.attachments:
             transformed_data[
-                constant.ENTRY_KEY
+                ENTRY_KEY
             ][
-                constant.ANSWERS_PAGES_KEY
+                ANSWERS_PAGES_KEY
             ][
                 attachment.category
             ][
@@ -60,9 +71,9 @@ class Form:
 
     def set_debug_project(self, project_name):
         self._raw_data[
-            constant.ENTRY_KEY
+            ENTRY_KEY
         ][
-            constant.ANSWERS_PAGES_KEY
+            ANSWERS_PAGES_KEY
         ][
             "p1_klantgegevens"
         ][
@@ -88,4 +99,4 @@ class Form:
 
 
 def _is_survey_value_attachment(value):
-    return isinstance(value, str) and path.splitext(value)[1] in constant.IMAGE_FILE_EXTENSIONS
+    return isinstance(value, str) and path.splitext(value)[1] in IMAGE_FILE_EXTENSIONS

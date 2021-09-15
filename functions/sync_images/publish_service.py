@@ -1,10 +1,10 @@
 import json
 
 from config import COORDINATE_SERVICE_KEYFIELD
-from form_object import Form
-from google.cloud.pubsub_v1 import PublisherClient
 
 from coordinate_service import CoordinateService
+from form_object import Form
+from google.cloud.pubsub_v1 import PublisherClient
 from retry import retry
 
 
@@ -24,8 +24,10 @@ class PublishService:
         when the 'entity_id' is equal to an existing Feature's 'entity_id'. In this case it's configured
         to be based on this form's postcode and huisnummer. This *should* make sure that no duplicate
         Features are create on the ArcGIS FeatureMap.
+
+        :param form: The form to publish to topic.
+        :type form: Form
         """
-        # TODO: Make sure no duplicate bops are created.
 
         data = form.to_compiled_data()
 
@@ -34,6 +36,7 @@ class PublishService:
             data, COORDINATE_SERVICE_KEYFIELD
         )
 
+        # Publish message to topic to be picked up by the ArcGIS interface.
         message_to_publish = {"appee_survey": data}
         self._publisher.publish(
             self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))

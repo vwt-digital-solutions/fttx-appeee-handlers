@@ -1,18 +1,37 @@
 import json
 import logging
 
-from config import IMAGE_STORE_BUCKET, TOPIC_NAME, ENTRY_FILEPATH_PREFIX
+from config import (
+    IMAGE_STORE_BUCKET,
+    TOPIC_NAME,
+    ENTRY_FILEPATH_PREFIX
+)
+
+from attachment_service import AttachmentService
 from form_object import Form
 from google.cloud import storage
-
-from requests_retry_session import get_requests_session
-from attachment_service import AttachmentService
 from publish_service import PublishService
+from requests_retry_session import get_requests_session
 
 logging.basicConfig(level=logging.INFO)
 
 
 def handler(request):
+    """
+    This cloud function will attempt to correct ArcGIS features
+    when needed. The repair mainly focuses on checking the attachments,
+    and download them when missing. When sending the form to
+    the ArcGIS interface it also causes the interface to remap all fields.
+    This is desirable since it updates the ArcGIS features to their
+    desired state.
+
+    :param request: The request to this cloud function.
+    :type request: flask.Request
+
+    :return: The result of this cloud function., An HTTP status code.
+    :rtype: str, int
+    """
+
     # Initializing components
     arguments = get_request_arguments(request)
 
@@ -47,7 +66,7 @@ def handler(request):
         "downloaded_attachment_count": 0
     }
 
-    # Scanning forms
+    # Looping through all forms to check them.
     for form_blob in form_blobs:
         result["total_form_count"] += 1
         form_data = json.loads(form_blob.download_as_string())
@@ -61,6 +80,7 @@ def handler(request):
             )
             continue
 
+        # Find all a form's attachments that are not available in storage.
         missing_attachments = attachment_service.find_missing_attachments(form)
 
         if missing_attachments:
@@ -75,6 +95,7 @@ def handler(request):
                 )
 
                 for attachment in missing_attachments:
+                    # Downloading attachment to storage.
                     success, response = attachment_service.download(attachment)
                     if success:
                         result["downloaded_attachment_count"] += 1
@@ -90,15 +111,29 @@ def handler(request):
                 logging.info("Download(s) complete.")
 
         if (missing_attachments and not skip_download) or force_arcgis_update:
+            # Sets a debug value to check if ArcGIS is receiving updates.
+            # TODO: Remove when all tests have been completed.
             if debug_fca_project:
                 form.set_debug_project(debug_fca_project)
             logging.info("Sending form to ArcGIS...")
+
+            # Sending the form to ArcGIS
             publish_service.publish_form(form)
 
     return json.dumps(result), 200
 
 
 def get_request_arguments(request):
+    """
+    Extracts all arguments from HTTP arguments and JSON body.
+
+    :param request: The request object to extract from.
+    :type request: flask.Request
+
+    :return: A dictionary of all arguments.
+    :rtype: dict
+    """
+
     arguments = dict()
     if not request:
         return arguments
