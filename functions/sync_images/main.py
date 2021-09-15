@@ -103,6 +103,8 @@ def get_request_arguments(request):
     for key, value in http_arguments.items():
         arguments[key] = value
 
+    return arguments
+
 
 if __name__ == "__main__":
     request = None
