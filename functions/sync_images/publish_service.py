@@ -5,18 +5,15 @@ from form_object import Form
 from google.cloud.pubsub_v1 import PublisherClient
 
 from coordinate_service import CoordinateService
-from requests_retry_session import get_requests_session
 from retry import retry
 
 
 class PublishService:
-    def __init__(self, topic_name):
-        self.requests_session = get_requests_session(
-            retries=3, backoff=15, status_forcelist=(404, 500, 502, 503, 504)
-        )
+    def __init__(self, topic_name, request_session):
+        self.requests_session = request_session
         self._publisher = PublisherClient()
         self._topic_name = topic_name
-        self.coordinate_service = CoordinateService()
+        self.coordinate_service = CoordinateService(request_session)
 
     @retry(tries=5, delay=5, backoff=2, logger=None)
     def publish_form(self, form: Form):

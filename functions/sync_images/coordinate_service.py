@@ -9,14 +9,13 @@ from urllib.parse import urlencode
 from config import (COORDINATE_SERVICE, COORDINATE_SERVICE_AUTHENTICATION,
                     COORDINATE_SERVICE_LATLON)
 from requests.exceptions import ConnectionError, HTTPError
-from requests_retry_session import get_requests_session
 from retry import retry
 from utils import get_secret
 
 
 class CoordinateService:
-    def __init__(self):
-        self.requests_session = get_requests_session()
+    def __init__(self, request_session):
+        self.requests_session = request_session
         self.token = self._get_feature_service_token()
 
     def _get_feature_service_token(self):

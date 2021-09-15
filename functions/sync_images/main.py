@@ -5,6 +5,7 @@ from config import IMAGE_STORE_BUCKET, TOPIC_NAME, ENTRY_FILEPATH_PREFIX
 from form_object import Form
 from google.cloud import storage
 
+from requests_retry_session import get_requests_session
 from attachment_service import AttachmentService
 from publish_service import PublishService
 
@@ -24,11 +25,14 @@ def handler(request):
     # Update arcgis entry even when no attachment was downloaded.
     force_arcgis_update = arguments.get("force_arcgis_update", False)
 
+    # Retry options
+    request_retry_options = arguments.get("request_retry_options", {})
+
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
 
-    attachment_service = AttachmentService(storage_client)
-    publish_service = PublishService(TOPIC_NAME)
+    attachment_service = AttachmentService(storage_client, get_requests_session(**request_retry_options))
+    publish_service = PublishService(TOPIC_NAME, get_requests_session(**request_retry_options))
 
     # Getting all form blobs
     form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
