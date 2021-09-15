@@ -5,8 +5,8 @@ from config import IMAGE_STORE_BUCKET, TOPIC_NAME, ENTRY_FILEPATH_PREFIX
 from form_object import Form
 from google.cloud import storage
 
-from functions.sync_images.attachment_service import AttachmentService
-from functions.sync_images.publish_service import PublishService
+from attachment_service import AttachmentService
+from publish_service import PublishService
 
 logging.basicConfig(level=logging.INFO)
 
