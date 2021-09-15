@@ -5,7 +5,7 @@ from form_object import Form
 from gobits import Gobits
 from google.cloud.pubsub_v1 import PublisherClient
 
-from functions.get_images.coordinate_service import CoordinateService
+from coordinate_service import CoordinateService
 from requests_retry_session import get_requests_session
 from retry import retry
 

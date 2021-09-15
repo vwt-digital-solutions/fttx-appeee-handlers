@@ -2,8 +2,8 @@ import requests
 
 from config import IMAGE_STORE_BUCKET
 from mimetypes import guess_type
-from functions.sync_images.form_object import Attachment, Form
-from functions.sync_images.requests_retry_session import get_requests_session
+from form_object import Attachment, Form
+from requests_retry_session import get_requests_session
 
 
 class AttachmentService:
