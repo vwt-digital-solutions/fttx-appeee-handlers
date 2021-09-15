@@ -11,10 +11,10 @@ logging.basicConfig(level=logging.INFO)
 def handler(request):
     # Initializing components
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(config.FORM_STORE_BUCKET)
+    bucket = storage_client.get_bucket(config.IMAGE_STORE_BUCKET)
 
     # Getting all form blobs
-    form_blobs = bucket.list_blobs(prefix=config.FORM_STORE_PATH)
+    form_blobs = bucket.list_blobs(prefix=config.ENTRY_FILEPATH_PREFIX)
 
     result = {
         "total_form_count": 0,
