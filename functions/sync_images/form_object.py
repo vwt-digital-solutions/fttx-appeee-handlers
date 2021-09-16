@@ -19,6 +19,9 @@ from urllib.parse import quote_plus
 
 
 class Attachment:
+    """
+    This class represents a form's attachment.
+    """
     def __init__(self, category, type, bucket_path, download_url):
         self.category = category
         self.type = type
@@ -27,6 +30,9 @@ class Attachment:
 
 
 class Form:
+    """
+    This class represents a filled in APPEEE form/survey.
+    """
     def __init__(self, data):
         provider_id = data[PROVIDER_ID_KEY]
         ds_row_id = data[ENTRY_KEY][DS_ROW_ID_KEY]
@@ -49,6 +55,7 @@ class Form:
     def to_compiled_data(self):
         """
         Compiles data by updating attachment storage paths.
+        This is done so that ArcGIS can find the attachments.
         """
         transformed_data = copy.deepcopy(self._raw_data)
 
@@ -68,17 +75,6 @@ class Form:
             )
 
         return transformed_data
-
-    def set_debug_project(self, project_name):
-        self._raw_data[
-            ENTRY_KEY
-        ][
-            ANSWERS_PAGES_KEY
-        ][
-            "p1_klantgegevens"
-        ][
-            "fca_project"
-        ] = project_name
 
     def _find_attachments(self, survey_pages):
         attachments = []

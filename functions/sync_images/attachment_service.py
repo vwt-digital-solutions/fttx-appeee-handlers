@@ -14,7 +14,7 @@ class AttachmentService:
 
     def exists(self, attachment: Attachment):
         """
-        Checks for the existence of the specified attachment.
+        Checks for the existence of the specified attachment in storage.
 
         :param attachment: The attachment to check.
         :type attachment: Attachment
@@ -26,6 +26,14 @@ class AttachmentService:
         return blob and blob.exists()
 
     def find_missing_attachments(self, form: Form):
+        """
+        Scans the specified form for attachments that are missing in storage.
+
+        :param form: The form to scan.
+        :type form: Form
+        :return: A list of the specified form's attachments that are missing in storage.
+        :rtype: list
+        """
         return [att for att in form.attachments if not self.exists(att)]
 
     def download(self, attachment: Attachment):
