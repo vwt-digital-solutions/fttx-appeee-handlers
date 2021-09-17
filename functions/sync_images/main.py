@@ -55,6 +55,7 @@ def handler(request):
 
     # Getting all form blobs
     form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
+    form_blobs = list(form_blobs)
 
     result = {
         "total_form_count": 0,
@@ -63,14 +64,19 @@ def handler(request):
         "downloaded_attachment_count": 0
     }
 
+    logging.info(f"Geting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
+    logging.info(f"Found blobs: {str(len(form_blobs))}")
+
     # Looping through all forms to check them.
     for form_blob in form_blobs:
         result["total_form_count"] += 1
-        form_data = json.loads(form_blob.download_as_string())
+        json_data = form_blob.download_as_text()
+        logging.info(f"JSON of blob({form_blob.name}): {json_data}")
 
         try:
+            form_data = json.loads(json_data)
             form = Form(form_data)
-        except KeyError as exception:
+        except (KeyError, json.decoder.JSONDecodeError) as exception:
             logging.error(
                 f"Invalid form: {form_blob.name}\n"
                 f"Exception: {str(exception)}"
