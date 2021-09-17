@@ -64,8 +64,8 @@ def handler(request):
         "downloaded_attachment_count": 0
     }
 
-    logging.info("Geting all blobs from: ", ENTRY_FILEPATH_PREFIX + form_storage_suffix)
-    logging.info("Found blobs: ", len(form_blobs))
+    logging.info(f"Geting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
+    logging.info(f"Found blobs: {str(len(form_blobs))}")
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
