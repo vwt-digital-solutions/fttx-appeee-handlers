@@ -55,6 +55,7 @@ def handler(request):
 
     # Getting all form blobs
     form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
+    form_blobs = list(form_blobs)
 
     result = {
         "total_form_count": 0,
@@ -62,6 +63,9 @@ def handler(request):
         "missing_attachment_count": 0,
         "downloaded_attachment_count": 0
     }
+
+    logging.info("Geting all blobs from: ", ENTRY_FILEPATH_PREFIX + form_storage_suffix)
+    logging.info("Found blobs: ", len(form_blobs))
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
