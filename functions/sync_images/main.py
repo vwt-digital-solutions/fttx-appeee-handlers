@@ -70,7 +70,9 @@ def handler(request):
     # Looping through all forms to check them.
     for form_blob in form_blobs:
         result["total_form_count"] += 1
-        form_data = json.loads(form_blob.download_as_string())
+        json_data = form_blob.download_as_text()
+        logging.info(f"JSON of blob: {json_data}")
+        form_data = json.loads(json_data)
 
         try:
             form = Form(form_data)
