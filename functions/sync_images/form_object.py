@@ -85,8 +85,8 @@ class Form:
                     attachment = Attachment(
                         survey_page_name,
                         survey_field,
-                        f"{self.attachment_bucket_base_path}{survey_value}",
-                        f"{self.attachment_download_base_url}/{survey_field}_{survey_value}"
+                        f"{self.attachment_bucket_base_path}/{survey_field}_{survey_value}",
+                        f"{self.attachment_download_base_url}/{survey_value}"
                     )
 
                     attachments.append(attachment)
