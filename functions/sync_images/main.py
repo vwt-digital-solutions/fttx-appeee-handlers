@@ -71,7 +71,7 @@ def handler(request):
     for form_blob in form_blobs:
         result["total_form_count"] += 1
         json_data = form_blob.download_as_text()
-        logging.info(f"JSON of blob: {json_data}")
+        logging.info(f"JSON of blob({form_blob.name}): {json_data}")
 
         try:
             form_data = json.loads(json_data)
