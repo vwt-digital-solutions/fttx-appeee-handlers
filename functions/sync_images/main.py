@@ -72,11 +72,11 @@ def handler(request):
         result["total_form_count"] += 1
         json_data = form_blob.download_as_text()
         logging.info(f"JSON of blob: {json_data}")
-        form_data = json.loads(json_data)
 
         try:
+            form_data = json.loads(json_data)
             form = Form(form_data)
-        except KeyError as exception:
+        except (KeyError, json.decoder.JSONDecodeError) as exception:
             logging.error(
                 f"Invalid form: {form_blob.name}\n"
                 f"Exception: {str(exception)}"
