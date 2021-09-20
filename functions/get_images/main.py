@@ -1,11 +1,16 @@
 import json
 import logging
 
-import config
-from coordinate_service import CoordinateService
+
+from config import (
+    ENTRY_FILEPATH_PREFIX,
+    TOPIC_NAME
+)
+
+from functions.common.form_object import Form
+from functions.common.attachment_service import AttachmentService
+from functions.common.publish_service import PublishService
 from google.cloud import storage
-from image_service import ImageService
-from publish_service import PublishService
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,9 +27,9 @@ def handler(data, context):
     bucket_name = data["bucket"]
     filename = data["name"]
 
-    if not filename.startswith(config.ENTRY_FILEPATH_PREFIX):
+    if not filename.startswith(ENTRY_FILEPATH_PREFIX):
         logging.info(
-            f"Skip file gs://{bucket_name}/{filename}: File is not in {config.ENTRY_FILEPATH_PREFIX}"
+            f"Skip file gs://{bucket_name}/{filename}: File is not in {ENTRY_FILEPATH_PREFIX}"
         )
         return
 
@@ -36,22 +41,23 @@ def handler(data, context):
     storage_client = storage.Client()
     entry_bucket = storage_client.get_bucket(bucket_name)
     entry_blob = entry_bucket.blob(filename)
-    form_entry = json.loads(entry_blob.download_as_string())
+    form_data = json.loads(entry_blob.download_as_string())
+    form = Form(form_data)
+
+    # Setup services
+    attachment_service = AttachmentService(storage_client)
+    publish_service = PublishService(TOPIC_NAME)
 
     # Download images
     logging.info("Downloading images")
-    form_entry = ImageService(storage_client).download_images_for_form_entry(form_entry)
+    for attachment in form.attachments:
+        if attachment_service.exists(attachment):
+            logging.warning(f"Image '{attachment.bucket_path}' already exists, skipping.")
+        else:
+            attachment_service.download(attachment)
 
-    # Add coordinates and convert to geojson.
-    coordinate_service = CoordinateService()
-    geo_json = coordinate_service.download_coordinates_for_form_entry(
-        form_entry, config.COORDINATE_SERVICE_KEYFIELD
-    )
-
-    # Publish form entry
-    if geo_json:
-        publish_service = PublishService(config.TOPIC_NAME, context)
-        publish_service.publish_message(geo_json)
+    # Publish form to topic
+    publish_service.publish_form(form, context=context)
 
 
 if __name__ == "__main__":

@@ -57,7 +57,7 @@ class Form:
         Compiles data by updating attachment storage paths.
         This is done so that ArcGIS can find the attachments.
         """
-        transformed_data = copy.deepcopy(self._raw_data)
+        transformed_data = self.to_dict()
 
         # Updating the attachment location to the bucket attachment's bucket location.
         for attachment in self.attachments:
@@ -76,12 +76,15 @@ class Form:
 
         return transformed_data
 
+    def to_dict(self):
+        return copy.deepcopy(self._raw_data)
+
     def _find_attachments(self, survey_pages):
         attachments = []
 
         for survey_page_name, survey_page in survey_pages.items():
             for survey_field, survey_value in survey_page.items():
-                if _is_survey_value_attachment(survey_value):
+                if self._is_survey_value_attachment(survey_value):
                     attachment = Attachment(
                         survey_page_name,
                         survey_field,
@@ -93,6 +96,11 @@ class Form:
 
         return attachments
 
+    @staticmethod
+    def _is_survey_value_attachment(value):
+        if isinstance(value, str):
+            name, extension = path.splitext(value)
+            if extension:
+                return extension in IMAGE_FILE_EXTENSIONS
 
-def _is_survey_value_attachment(value):
-    return isinstance(value, str) and path.splitext(value)[1] in IMAGE_FILE_EXTENSIONS
+        return False

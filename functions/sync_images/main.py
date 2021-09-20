@@ -7,13 +7,16 @@ from config import (
     ENTRY_FILEPATH_PREFIX
 )
 
-from attachment_service import AttachmentService
-from form_object import Form
+from functions.common.attachment_service import AttachmentService
+from functions.common.form_object import Form
+from functions.common.publish_service import PublishService
+from functions.common.requests_retry_session import get_requests_session
 from google.cloud import storage
-from publish_service import PublishService
-from requests_retry_session import get_requests_session
+
 
 logging.basicConfig(level=logging.INFO)
+
+REQUEST_RETRY_SESSION = get_requests_session()
 
 
 def handler(request):
@@ -35,23 +38,32 @@ def handler(request):
     # Initializing components
     arguments = get_request_arguments(request)
 
-    # Skips download of attachments.
-    skip_download = arguments.get("skip_download", False)
-
-    # Suffix of the form bucket path.
+    # Can be used to specify a sub directory.
     form_storage_suffix = arguments.get("form_storage_suffix", "")
 
-    # Update arcgis entry even when no attachment was downloaded.
-    force_arcgis_update = arguments.get("force_arcgis_update", False)
+    # Download missing attachments.
+    download_attachment_enabled = arguments.get("download_attachment_enabled", True)
 
-    # Retry options
-    request_retry_options = arguments.get("request_retry_options", {})
+    # Send entries to ArcGIS when changed.
+    arcgis_update_enabled = arguments.get("arcgis_update_enabled", True)
+
+    # Always send entries to ArcGIS.
+    arcgis_update_forced = arguments.get("arcgis_update_forced", False)
+
+    # Options for request retry.
+    request_retry_options = arguments.get("request_retry_options", {
+        "retries": 6,
+        "backoff": 10,
+        "status_forcelist": [
+            404, 500, 502, 503, 504
+        ]
+    })
 
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
 
-    attachment_service = AttachmentService(storage_client, get_requests_session(**request_retry_options))
-    publish_service = PublishService(TOPIC_NAME, get_requests_session(**request_retry_options))
+    attachment_service = AttachmentService(storage_client, **request_retry_options)
+    publish_service = PublishService(TOPIC_NAME, **request_retry_options)
 
     # Getting all form blobs
     form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
@@ -64,7 +76,7 @@ def handler(request):
         "downloaded_attachment_count": 0
     }
 
-    logging.info(f"Geting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
+    logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
     logging.info(f"Found blobs: {str(len(form_blobs))}")
 
     # Looping through all forms to check them.
@@ -91,7 +103,7 @@ def handler(request):
             result["form_with_missing_attachment_count"] += 1
             result["missing_attachment_count"] += missing_attachment_count
 
-            if not skip_download:
+            if download_attachment_enabled:
                 logging.info(
                     f"Found {missing_attachment_count} missing attachments for {form_blob.name}, "
                     "attempting to download..."
@@ -113,7 +125,8 @@ def handler(request):
 
                 logging.info("Download(s) complete.")
 
-        if (missing_attachments and not skip_download) or force_arcgis_update:
+        downloaded_missing_attachments = missing_attachments and download_attachment_enabled
+        if (downloaded_missing_attachments and arcgis_update_enabled) or arcgis_update_forced:
             logging.info("Sending form to ArcGIS...")
 
             # Sending the form to ArcGIS
@@ -134,17 +147,15 @@ def get_request_arguments(request):
     """
 
     arguments = dict()
-    if not request:
-        return arguments
+    if request:
+        json_body = request.get_json(silent=True)
+        http_arguments = request.args
 
-    json_body = request.get_json(silent=True)
-    http_arguments = request.args
+        for key, value in json_body.items():
+            arguments[key] = value
 
-    for key, value in json_body.items():
-        arguments[key] = value
-
-    for key, value in http_arguments.items():
-        arguments[key] = value
+        for key, value in http_arguments.items():
+            arguments[key] = value
 
     return arguments
 
