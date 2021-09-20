@@ -10,6 +10,7 @@ from config import (
 from functions.common.form_object import Form
 from functions.common.attachment_service import AttachmentService
 from functions.common.publish_service import PublishService
+from gobits import Gobits
 from google.cloud import storage
 
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +58,8 @@ def handler(data, context):
             attachment_service.download(attachment)
 
     # Publish form to topic
-    publish_service.publish_form(form, context=context)
+    gobits = Gobits.from_context(context=context)
+    publish_service.publish_form(form, gobits)
 
 
 if __name__ == "__main__":

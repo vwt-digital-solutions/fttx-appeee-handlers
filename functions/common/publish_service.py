@@ -14,7 +14,7 @@ class PublishService:
         self.coordinate_service = CoordinateService(**kwargs)
 
     @retry(tries=5, delay=5, backoff=2, logger=None)
-    def publish_form(self, form: Form, context=None):
+    def publish_form(self, form: Form, metadata: Gobits):
         """
         Publishes a form object to topic.
 
@@ -25,8 +25,8 @@ class PublishService:
 
         :param form: The form to publish to topic.
         :type form: Form
-        :param context: Metadata of cloud function trigger event.
-        :type context: google.cloud.functions.Context
+        :param metadata: Metadata of cloud function trigger event.
+        :type metadata: Gobits
         """
 
         # Converting/downloading the coordinates for this form.
@@ -35,9 +35,8 @@ class PublishService:
         # Publish message to topic to be picked up by the ArcGIS interface.
         message_to_publish = {"appee_survey": data}
 
-        if context:
-            gobits = Gobits.from_context(context=context)
-            message_to_publish["gobits"] = [gobits.to_json]
+        if metadata:
+            message_to_publish["gobits"] = [metadata.to_json]
 
         self._publisher.publish(
             self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))

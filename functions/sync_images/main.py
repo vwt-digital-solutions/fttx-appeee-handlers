@@ -11,6 +11,7 @@ from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
 from functions.common.requests_retry_session import get_requests_session
+from gobits import Gobits
 from google.cloud import storage
 
 
@@ -130,7 +131,8 @@ def handler(request):
             logging.info("Sending form to ArcGIS...")
 
             # Sending the form to ArcGIS
-            publish_service.publish_form(form)
+            gobits = Gobits.from_request(request=request)
+            publish_service.publish_form(form, metadata=gobits)
 
     return json.dumps(result), 200
 
