@@ -7,7 +7,7 @@ from config import (
     ENTRY_FILEPATH_PREFIX
 )
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
@@ -65,7 +65,7 @@ def handler(request):
     })
 
     # Get the current time for delta time calculations.
-    process_start_time = datetime.now()
+    process_start_time = datetime.now(timezone.utc)  # timestamp must be timezone aware and conform to RFC3339
 
     storage_client = storage.Client()
     attachment_service = AttachmentService(storage_client, **request_retry_options)
@@ -91,7 +91,7 @@ def handler(request):
     # Looping through all forms to check them.
     for form_blob in form_blobs:
         # Check if blob creation time does not exceed max age.
-        if max_time_delta and form_blob.time_created - process_start_time > max_time_delta:
+        if max_time_delta and process_start_time - form_blob.time_created > max_time_delta:
             continue
 
         form = Form.from_blob(form_blob)
