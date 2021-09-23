@@ -43,6 +43,10 @@ def handler(data, context):
     entry_blob = entry_bucket.blob(filename)
     form = Form.from_blob(entry_blob)
 
+    if not form:
+        logging.warning(f"Could not get form object from {entry_blob.name}")
+        return
+
     # Setup services
     attachment_service = AttachmentService(storage_client)
     publish_service = PublishService(TOPIC_NAME)
