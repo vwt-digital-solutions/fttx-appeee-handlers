@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Optional
 
 from config import (
     IMAGE_STORE_BUCKET,
@@ -7,12 +8,14 @@ from config import (
     ENTRY_FILEPATH_PREFIX
 )
 
+from datetime import datetime, timedelta
 from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
 from functions.common.requests_retry_session import get_requests_session
 from gobits import Gobits
 from google.cloud import storage
+from google.cloud.storage.blob import Blob
 
 
 logging.basicConfig(level=logging.INFO)
@@ -42,14 +45,17 @@ def handler(request):
     # Can be used to specify a sub directory.
     form_storage_suffix = arguments.get("form_storage_suffix", "")
 
+    # Specifies the maximum age of the blobs, older blobs will be ignored.
+    max_time_delta = timedelta(**arguments["max_time_delta"]) if "max_time_delta" in arguments else None
+
     # Download missing attachments.
-    download_attachment_enabled = arguments.get("download_attachment_enabled", True)
+    enable_attachment_downloading = arguments.get("enable_attachment_downloading", True)
 
     # Send entries to ArcGIS when changed.
-    arcgis_update_enabled = arguments.get("arcgis_update_enabled", True)
+    enable_arcgis_updating = arguments.get("enable_arcgis_updating", True)
 
     # Always send entries to ArcGIS.
-    arcgis_update_forced = arguments.get("arcgis_update_forced", False)
+    force_arcgis_updating = arguments.get("force_arcgis_updating", False)
 
     # Options for request retry.
     request_retry_options = arguments.get("request_retry_options", {
@@ -60,14 +66,18 @@ def handler(request):
         ]
     })
 
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
+    # Get the current time for delta time calculations.
+    process_start_time = datetime.now()
 
+    storage_client = storage.Client()
     attachment_service = AttachmentService(storage_client, **request_retry_options)
     publish_service = PublishService(TOPIC_NAME, **request_retry_options)
 
     # Getting all form blobs
-    form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
+    form_blobs = storage_client.list_blobs(
+        bucket_or_name=IMAGE_STORE_BUCKET,
+        prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix
+    )
     form_blobs = list(form_blobs)
 
     result = {
@@ -82,19 +92,12 @@ def handler(request):
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
-        result["total_form_count"] += 1
-        json_data = form_blob.download_as_text()
-        logging.info(f"JSON of blob({form_blob.name}): {json_data}")
+        form = blob_to_form(form_blob, process_start_time, max_time_delta)
 
-        try:
-            form_data = json.loads(json_data)
-            form = Form(form_data)
-        except (KeyError, json.decoder.JSONDecodeError) as exception:
-            logging.error(
-                f"Invalid form: {form_blob.name}\n"
-                f"Exception: {str(exception)}"
-            )
+        if not form:
             continue
+
+        result["total_form_count"] += 1
 
         # Find all a form's attachments that are not available in storage.
         missing_attachments = attachment_service.find_missing_attachments(form)
@@ -104,7 +107,7 @@ def handler(request):
             result["form_with_missing_attachment_count"] += 1
             result["missing_attachment_count"] += missing_attachment_count
 
-            if download_attachment_enabled:
+            if enable_attachment_downloading:
                 logging.info(
                     f"Found {missing_attachment_count} missing attachments for {form_blob.name}, "
                     "attempting to download..."
@@ -126,8 +129,8 @@ def handler(request):
 
                 logging.info("Download(s) complete.")
 
-        downloaded_missing_attachments = missing_attachments and download_attachment_enabled
-        if (downloaded_missing_attachments and arcgis_update_enabled) or arcgis_update_forced:
+        downloaded_missing_attachments = missing_attachments and enable_attachment_downloading
+        if (downloaded_missing_attachments and enable_arcgis_updating) or force_arcgis_updating:
             logging.info("Sending form to ArcGIS...")
 
             # Sending the form to ArcGIS
@@ -135,6 +138,34 @@ def handler(request):
             publish_service.publish_form(form, metadata=gobits)
 
     return json.dumps(result), 200
+
+
+def blob_to_form(blob: Blob, current_time: datetime, max_time_delta: timedelta) -> Optional[Form]:
+    # Check if blob creation time does not exceed max age.
+    if max_time_delta and blob.time_created - current_time <= max_time_delta:
+        # Check if blob is man-made folder (0 byte object)
+        if blob.size > 0:
+            json_data = blob.download_as_text()
+            logging.info(f"JSON of blob({blob.name}): {json_data}")
+
+            try:
+                form_data = json.loads(json_data)
+                form = Form(form_data)
+            except (KeyError, json.decoder.JSONDecodeError) as exception:
+                logging.error(
+                    f"Invalid form: {blob.name}\n"
+                    f"Exception: {str(exception)}"
+                )
+            else:
+                # Checking if form is schouw form.
+                if form.is_schouw_form():
+                    logging.info(f"Form '{blob.name}' is a 'schouw form', skipping...")
+                else:
+                    return form
+        else:
+            logging.info(f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
+
+    return None
 
 
 def get_request_arguments(request):

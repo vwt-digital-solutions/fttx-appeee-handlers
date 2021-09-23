@@ -52,7 +52,7 @@ class Form:
             data[ENTRY_KEY][ANSWERS_PAGES_KEY]
         )
 
-    def to_compiled_data(self):
+    def to_compiled_data(self) -> dict:
         """
         Compiles data by updating attachment storage paths.
         This is done so that ArcGIS can find the attachments.
@@ -76,10 +76,10 @@ class Form:
 
         return transformed_data
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return copy.deepcopy(self._raw_data)
 
-    def _find_attachments(self, survey_pages):
+    def _find_attachments(self, survey_pages) -> list:
         attachments = []
 
         for survey_page_name, survey_page in survey_pages.items():
@@ -96,8 +96,11 @@ class Form:
 
         return attachments
 
+    def is_schouw_form(self) -> bool:
+        return "SCHOUW_GEGEVENS_PAGE" in self._raw_data[ENTRY_KEY][ANSWERS_PAGES_KEY]
+
     @staticmethod
-    def _is_survey_value_attachment(value):
+    def _is_survey_value_attachment(value) -> bool:
         if isinstance(value, str):
             name, extension = path.splitext(value)
             if extension:
