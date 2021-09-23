@@ -105,7 +105,7 @@ class Form:
     @staticmethod
     def from_blob(blob: Blob):
         # Check if blob is man-made folder (0 byte object)
-        if blob.size > 0:
+        if blob.size:
             json_data = blob.download_as_text()
             logging.info(f"JSON of blob({blob.name}): {json_data}")
 
