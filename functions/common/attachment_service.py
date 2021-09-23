@@ -4,12 +4,13 @@ from config import IMAGE_STORE_BUCKET
 
 from form_object import Attachment, Form
 from mimetypes import guess_type
+from requests_retry_session import get_requests_session
 
 
 class AttachmentService:
-    def __init__(self, storage_client, request_session):
+    def __init__(self, storage_client, **kwargs):
         self.storage_client = storage_client
-        self.requests_session = request_session
+        self.requests_session = get_requests_session(**kwargs)
         self.bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
 
     def exists(self, attachment: Attachment):

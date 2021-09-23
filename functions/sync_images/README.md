@@ -16,22 +16,24 @@ option.
 ### Function Arguments
 There are a few arguments that can be given to this function:
 
-| Field                 | Description                                                   | Default |
-| :-------------------: | ------------------------------------------------------------- | :-----: |
-| form_storage_suffix   | Can be used to specify a sub directory.                       | None    |
-| skip_download         | Skip the download of attachment files.                        | False   |
-| force_arcgis_update   | Updates entry to ArcGIS, even when no changes have been found | False   |
-| request_retry_options | Options for request retry                                     | None    |
+| Field                       | Description                             | Default | Required |
+| :-------------------------- | :-------------------------------------- | :------ | :------: |
+| form_storage_suffix         | Can be used to specify a sub directory. | None    | No       |
+| download_attachment_enabled | Download missing attachments.           | True    | No       |
+| arcgis_update_enabled       | Send entries to ArcGIS when changed.    | True    | No       |
+| arcgis_update_forced        | Always send entries to ArcGIS.          | False   | No       |
+| request_retry_options       | Options for request retry.              | None    | No       |
 
-Example:
+Example (default):
 ```json
 {
     "form_storage_suffix": "/2021/07/21",
-    "skip_download": false,
-    "force_arcgis_update": false,
+    "download_attachment_enabled": true,
+    "arcgis_update_enabled": true,
+    "arcgis_update_forced": false,
     "request_retry_options": {
-        "retries": 1,
-        "backoff": 1,
+        "retries": 6,
+        "backoff": 10,
         "status_forcelist": [
           404, 500, 502, 503, 504
         ]
@@ -41,12 +43,13 @@ Example:
 
 ### Output
 | Field                              | Description                                   | Default |
-| :--------------------------------: | --------------------------------------------- | :-----: |
+| :--------------------------------- | --------------------------------------------- | :-----: |
 | total_form_count                   | The total amount of forms scanned             | N/A     |
 | form_with_missing_attachment_count | The amount of forms with missing attachments  | N/A     |
 | missing_attachment_count           | The total amount of missing attachments       | N/A     |
 | downloaded_attachment_count        | The amount of downloaded/restored attachments | N/A     |
 
+Example:
 ```json
 {
   "total_form_count": 0,
