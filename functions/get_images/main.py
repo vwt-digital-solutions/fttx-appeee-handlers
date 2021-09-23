@@ -55,7 +55,15 @@ def handler(data, context):
         if attachment_service.exists(attachment):
             logging.warning(f"Image '{attachment.bucket_path}' already exists, skipping.")
         else:
-            attachment_service.download(attachment)
+            success, response = attachment_service.download(attachment)
+            if not success:
+                logging.error(
+                    "Error downloading image.\n"
+                    f"Form: {entry_blob.name}\n"
+                    f"URL: {attachment.download_url}\n"
+                    f"Bucket path: {attachment.bucket_path}\n"
+                    f"Response: {response}"
+                )
 
     # Publish form to topic
     gobits = Gobits.from_context(context=context)
