@@ -1,4 +1,5 @@
 import json
+import logging
 
 from gobits import Gobits
 from coordinate_service import CoordinateService
@@ -37,6 +38,8 @@ class PublishService:
 
         if metadata:
             message_to_publish["gobits"] = [metadata.to_json]
+
+        logging.info("Publishing form to ArcGIS interface.")
 
         self._publisher.publish(
             self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))
