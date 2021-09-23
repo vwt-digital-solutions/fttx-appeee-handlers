@@ -40,7 +40,7 @@ def handler(data, context):
     # Retrieve form entry
     storage_client = storage.Client()
     entry_bucket = storage_client.get_bucket(bucket_name)
-    entry_blob = entry_bucket.blob(filename)
+    entry_blob = entry_bucket.get_blob(filename)
     form = Form.from_blob(entry_blob)
 
     if not form:
