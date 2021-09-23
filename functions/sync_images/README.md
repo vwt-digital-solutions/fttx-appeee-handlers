@@ -24,6 +24,7 @@ There are a few arguments that can be given to this function:
 | enable_arcgis_updating        | Send entries to ArcGIS when changed.                                             | True    | No       |
 | force_arcgis_updating         | Always send entries to ArcGIS.                                                   | False   | No       |
 | request_retry_options         | Options for request retry.                                                       | None    | No       |
+
 [1]: https://docs.python.org/3/library/datetime.html#timedelta-objects
 
 Example:
