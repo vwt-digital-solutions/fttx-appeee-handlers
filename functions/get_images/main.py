@@ -1,4 +1,3 @@
-import json
 import logging
 
 
@@ -42,8 +41,7 @@ def handler(data, context):
     storage_client = storage.Client()
     entry_bucket = storage_client.get_bucket(bucket_name)
     entry_blob = entry_bucket.blob(filename)
-    form_data = json.loads(entry_blob.download_as_string())
-    form = Form(form_data)
+    form = Form.from_blob(entry_blob)
 
     # Setup services
     attachment_service = AttachmentService(storage_client)

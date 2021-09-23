@@ -1,4 +1,6 @@
 import copy
+import logging
+import json
 
 from config import (
     IMAGE_STORE_PATH,
@@ -14,6 +16,7 @@ from constant import (
     IMAGE_FILE_EXTENSIONS
 )
 
+from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
 
@@ -98,6 +101,32 @@ class Form:
 
     def is_schouw_form(self) -> bool:
         return "SCHOUW_GEGEVENS_PAGE" in self._raw_data[ENTRY_KEY][ANSWERS_PAGES_KEY]
+
+    @staticmethod
+    def from_blob(blob: Blob):
+        # Check if blob is man-made folder (0 byte object)
+        if blob.size > 0:
+            json_data = blob.download_as_text()
+            logging.info(f"JSON of blob({blob.name}): {json_data}")
+
+            try:
+                form_data = json.loads(json_data)
+                form = Form(form_data)
+            except (KeyError, json.decoder.JSONDecodeError) as exception:
+                logging.error(
+                    f"Invalid form: {blob.name}\n"
+                    f"Exception: {str(exception)}"
+                )
+            else:
+                # Checking if form is schouw form.
+                if form.is_schouw_form():
+                    logging.info(f"Form '{blob.name}' is a 'schouw form', skipping...")
+                else:
+                    return form
+        else:
+            logging.info(f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
+
+        return None
 
     @staticmethod
     def _is_survey_value_attachment(value) -> bool:

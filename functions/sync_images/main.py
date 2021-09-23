@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Optional
 
 from config import (
     IMAGE_STORE_BUCKET,
@@ -15,7 +14,6 @@ from functions.common.publish_service import PublishService
 from functions.common.requests_retry_session import get_requests_session
 from gobits import Gobits
 from google.cloud import storage
-from google.cloud.storage.blob import Blob
 
 
 logging.basicConfig(level=logging.INFO)
@@ -92,7 +90,11 @@ def handler(request):
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
-        form = blob_to_form(form_blob, process_start_time, max_time_delta)
+        # Check if blob creation time does not exceed max age.
+        if max_time_delta and form_blob.time_created - process_start_time > max_time_delta:
+            continue
+
+        form = Form.from_blob(form_blob)
 
         if not form:
             continue
@@ -138,34 +140,6 @@ def handler(request):
             publish_service.publish_form(form, metadata=gobits)
 
     return json.dumps(result), 200
-
-
-def blob_to_form(blob: Blob, current_time: datetime, max_time_delta: timedelta) -> Optional[Form]:
-    # Check if blob creation time does not exceed max age.
-    if max_time_delta and blob.time_created - current_time <= max_time_delta:
-        # Check if blob is man-made folder (0 byte object)
-        if blob.size > 0:
-            json_data = blob.download_as_text()
-            logging.info(f"JSON of blob({blob.name}): {json_data}")
-
-            try:
-                form_data = json.loads(json_data)
-                form = Form(form_data)
-            except (KeyError, json.decoder.JSONDecodeError) as exception:
-                logging.error(
-                    f"Invalid form: {blob.name}\n"
-                    f"Exception: {str(exception)}"
-                )
-            else:
-                # Checking if form is schouw form.
-                if form.is_schouw_form():
-                    logging.info(f"Form '{blob.name}' is a 'schouw form', skipping...")
-                else:
-                    return form
-        else:
-            logging.info(f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
-
-    return None
 
 
 def get_request_arguments(request):
