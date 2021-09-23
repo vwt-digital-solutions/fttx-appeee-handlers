@@ -37,7 +37,7 @@ class PublishService:
         message_to_publish = {"appee_survey": data}
 
         if metadata:
-            message_to_publish["gobits"] = [metadata.to_json]
+            message_to_publish["gobits"] = [metadata.to_json()]
 
         logging.info("Publishing form to ArcGIS interface.")
 
