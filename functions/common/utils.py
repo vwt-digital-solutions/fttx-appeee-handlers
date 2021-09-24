@@ -1,7 +1,7 @@
 from google.cloud import secretmanager
 
 
-def get_from_path(dictionary: dict, path: str):
+def get_from_path(dictionary: dict, var_path: str):
     """
     Utility function to get a variable from a path.
 
@@ -22,13 +22,13 @@ def get_from_path(dictionary: dict, path: str):
 
     :param dictionary: The dictionary to get the variable from.
     :type dictionary: dict
-    :param path: The path of the variable in the dictionary.
-    :type path: str:
+    :param var_path: The path of the variable in the dictionary.
+    :type var_path: str:
 
     :return: Returns a variable based on the specified dictionary and path.
     """
 
-    key_list = path.split("/")
+    key_list = var_path.split("/")
 
     current = dictionary
     for key in key_list:

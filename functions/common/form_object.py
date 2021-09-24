@@ -5,7 +5,7 @@ import json
 from config import (
     IMAGE_STORE_PATH,
     IMAGE_DOWNLOAD_BASE_URL,
-    IMAGE_STORE_BUCKET
+    IMAGE_STORE_BUCKET,
 )
 from constant import (
     PROVIDER_ID_KEY,
@@ -16,9 +16,11 @@ from constant import (
     IMAGE_FILE_EXTENSIONS
 )
 
+from utils import get_from_path
 from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
+from form_rule import is_form_excluded
 
 
 class Attachment:
@@ -54,6 +56,9 @@ class Form:
         self.attachments = self._find_attachments(
             data[ENTRY_KEY][ANSWERS_PAGES_KEY]
         )
+
+    def get(self, var_path: str):
+        return get_from_path(self._raw_data, var_path)
 
     def to_compiled_data(self) -> dict:
         """
@@ -99,8 +104,14 @@ class Form:
 
         return attachments
 
-    def is_schouw_form(self) -> bool:
-        return "SCHOUW_GEGEVENS_PAGE" in self._raw_data[ENTRY_KEY][ANSWERS_PAGES_KEY]
+    def is_excluded(self) -> (bool, str):
+        """
+        Checks if this form is flagged as excluded.
+
+        :return: (True if flagged as excluded., An alert message if flagged)
+        :rtype: (bool, str)
+        """
+        return is_form_excluded(self)
 
     @staticmethod
     def from_blob(blob: Blob):
@@ -118,9 +129,10 @@ class Form:
                     f"Exception: {str(exception)}"
                 )
             else:
-                # Checking if form is schouw form.
-                if form.is_schouw_form():
-                    logging.info(f"Form '{blob.name}' is a 'schouw form', skipping...")
+                # Checking if form flagged as excluded.
+                excluded, alert = form.is_excluded()
+                if excluded:
+                    logging.info(str(alert))
                 else:
                     return form
         else:
