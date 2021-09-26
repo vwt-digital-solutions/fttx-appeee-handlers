@@ -41,19 +41,20 @@ class FormRule:
 
 def is_form_data_excluded(data: dict) -> (bool, str):
     for rule in RULES:
-        passed = True
+        passed = False
         for sub_rule in rule["rule_set"]:
             if not sub_rule.eval(data):
-                passed = False
+                passed = True
                 break
 
         if not passed:
             alert = rule.get("alert", {})
             variables = alert.get("variables", {})
+            parsed_variables = {}
             for key, value in variables.items():
-                variables[key] = get_from_path(data, value)
+                parsed_variables[key] = get_from_path(data, value)
 
-            return True, alert.get("message", "").format(**variables)
+            return True, alert.get("message", "").format(**parsed_variables)
     return False, None
 
 
