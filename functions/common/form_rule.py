@@ -4,7 +4,6 @@ from config import (
     EXCLUDE_RULES
 )
 
-from form_object import Form
 from utils import get_from_path
 
 RULES = list()
@@ -40,12 +39,11 @@ class FormRule:
         return self._rule_type.eval([value, *self._rule_type_args]) ^ self._invert
 
 
-def is_form_excluded(form: Form) -> (bool, str):
-    dictionary = form.to_dict()
+def is_form_data_excluded(data: dict) -> (bool, str):
     for rule in RULES:
         passed = True
         for sub_rule in rule["rule_set"]:
-            if not sub_rule.eval(dictionary):
+            if not sub_rule.eval(data):
                 passed = False
                 break
 
@@ -53,7 +51,7 @@ def is_form_excluded(form: Form) -> (bool, str):
             alert = rule.get("alert", {})
             variables = alert.get("variables", {})
             for key, value in variables.items():
-                variables[key] = get_from_path(dictionary, value)
+                variables[key] = get_from_path(data, value)
 
             return True, alert.get("message", "").format(**variables)
     return False, None

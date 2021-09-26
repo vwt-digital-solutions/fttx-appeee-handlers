@@ -20,7 +20,7 @@ from utils import get_from_path
 from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
-from form_rule import is_form_excluded
+from form_rule import is_form_data_excluded
 
 
 class Attachment:
@@ -111,7 +111,7 @@ class Form:
         :return: (True if flagged as excluded., An alert message if flagged)
         :rtype: (bool, str)
         """
-        return is_form_excluded(self)
+        return is_form_data_excluded(self._raw_data)
 
     @staticmethod
     def from_blob(blob: Blob):
