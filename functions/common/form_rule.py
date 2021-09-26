@@ -4,7 +4,7 @@ from config import (
     EXCLUDE_RULES
 )
 
-from functions.common.form_object import Form
+from form_object import Form
 from utils import get_from_path
 
 RULES = list()
