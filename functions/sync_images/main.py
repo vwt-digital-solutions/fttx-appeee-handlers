@@ -7,6 +7,7 @@ from config import (
     ENTRY_FILEPATH_PREFIX
 )
 
+from datetime import datetime, timedelta, timezone
 from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
@@ -42,14 +43,17 @@ def handler(request):
     # Can be used to specify a sub directory.
     form_storage_suffix = arguments.get("form_storage_suffix", "")
 
+    # Specifies the maximum age of the blobs, older blobs will be ignored.
+    max_time_delta = timedelta(**arguments["max_time_delta"]) if "max_time_delta" in arguments else None
+
     # Download missing attachments.
-    download_attachment_enabled = arguments.get("download_attachment_enabled", True)
+    enable_attachment_downloading = arguments.get("enable_attachment_downloading", True)
 
     # Send entries to ArcGIS when changed.
-    arcgis_update_enabled = arguments.get("arcgis_update_enabled", True)
+    enable_arcgis_updating = arguments.get("enable_arcgis_updating", True)
 
     # Always send entries to ArcGIS.
-    arcgis_update_forced = arguments.get("arcgis_update_forced", False)
+    force_arcgis_updating = arguments.get("force_arcgis_updating", False)
 
     # Options for request retry.
     request_retry_options = arguments.get("request_retry_options", {
@@ -60,14 +64,18 @@ def handler(request):
         ]
     })
 
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(IMAGE_STORE_BUCKET)
+    # Get the current time for delta time calculations.
+    process_start_time = datetime.now(timezone.utc)  # timestamp must be timezone aware and conform to RFC3339
 
+    storage_client = storage.Client()
     attachment_service = AttachmentService(storage_client, **request_retry_options)
     publish_service = PublishService(TOPIC_NAME, **request_retry_options)
 
     # Getting all form blobs
-    form_blobs = bucket.list_blobs(prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix)
+    form_blobs = storage_client.list_blobs(
+        bucket_or_name=IMAGE_STORE_BUCKET,
+        prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix
+    )
     form_blobs = list(form_blobs)
 
     result = {
@@ -82,19 +90,16 @@ def handler(request):
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
-        result["total_form_count"] += 1
-        json_data = form_blob.download_as_text()
-        logging.info(f"JSON of blob({form_blob.name}): {json_data}")
-
-        try:
-            form_data = json.loads(json_data)
-            form = Form(form_data)
-        except (KeyError, json.decoder.JSONDecodeError) as exception:
-            logging.error(
-                f"Invalid form: {form_blob.name}\n"
-                f"Exception: {str(exception)}"
-            )
+        # Check if blob creation time does not exceed max age.
+        if max_time_delta and process_start_time - form_blob.time_created > max_time_delta:
             continue
+
+        form = Form.from_blob(form_blob)
+
+        if not form:
+            continue
+
+        result["total_form_count"] += 1
 
         # Find all a form's attachments that are not available in storage.
         missing_attachments = attachment_service.find_missing_attachments(form)
@@ -104,7 +109,7 @@ def handler(request):
             result["form_with_missing_attachment_count"] += 1
             result["missing_attachment_count"] += missing_attachment_count
 
-            if download_attachment_enabled:
+            if enable_attachment_downloading:
                 logging.info(
                     f"Found {missing_attachment_count} missing attachments for {form_blob.name}, "
                     "attempting to download..."
@@ -126,8 +131,8 @@ def handler(request):
 
                 logging.info("Download(s) complete.")
 
-        downloaded_missing_attachments = missing_attachments and download_attachment_enabled
-        if (downloaded_missing_attachments and arcgis_update_enabled) or arcgis_update_forced:
+        downloaded_missing_attachments = missing_attachments and enable_attachment_downloading
+        if (downloaded_missing_attachments and enable_arcgis_updating) or force_arcgis_updating:
             logging.info("Sending form to ArcGIS...")
 
             # Sending the form to ArcGIS

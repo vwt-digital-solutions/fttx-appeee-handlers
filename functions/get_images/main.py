@@ -1,4 +1,3 @@
-import json
 import logging
 
 
@@ -41,9 +40,12 @@ def handler(data, context):
     # Retrieve form entry
     storage_client = storage.Client()
     entry_bucket = storage_client.get_bucket(bucket_name)
-    entry_blob = entry_bucket.blob(filename)
-    form_data = json.loads(entry_blob.download_as_string())
-    form = Form(form_data)
+    entry_blob = entry_bucket.get_blob(filename)
+    form = Form.from_blob(entry_blob)
+
+    if not form:
+        logging.warning(f"Could not get form object from {entry_blob.name}")
+        return
 
     # Setup services
     attachment_service = AttachmentService(storage_client)
@@ -55,7 +57,15 @@ def handler(data, context):
         if attachment_service.exists(attachment):
             logging.warning(f"Image '{attachment.bucket_path}' already exists, skipping.")
         else:
-            attachment_service.download(attachment)
+            success, response = attachment_service.download(attachment)
+            if not success:
+                logging.error(
+                    "Error downloading image.\n"
+                    f"Form: {entry_blob.name}\n"
+                    f"URL: {attachment.download_url}\n"
+                    f"Bucket path: {attachment.bucket_path}\n"
+                    f"Response: {response}"
+                )
 
     # Publish form to topic
     gobits = Gobits.from_context(context=context)

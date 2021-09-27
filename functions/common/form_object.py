@@ -1,9 +1,11 @@
 import copy
+import logging
+import json
 
 from config import (
     IMAGE_STORE_PATH,
     IMAGE_DOWNLOAD_BASE_URL,
-    IMAGE_STORE_BUCKET
+    IMAGE_STORE_BUCKET,
 )
 from constant import (
     PROVIDER_ID_KEY,
@@ -14,8 +16,11 @@ from constant import (
     IMAGE_FILE_EXTENSIONS
 )
 
+from utils import get_from_path
+from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
+from form_rule import is_form_data_excluded
 
 
 class Attachment:
@@ -52,7 +57,10 @@ class Form:
             data[ENTRY_KEY][ANSWERS_PAGES_KEY]
         )
 
-    def to_compiled_data(self):
+    def get(self, var_path: str):
+        return get_from_path(self._raw_data, var_path)
+
+    def to_compiled_data(self) -> dict:
         """
         Compiles data by updating attachment storage paths.
         This is done so that ArcGIS can find the attachments.
@@ -76,10 +84,10 @@ class Form:
 
         return transformed_data
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return copy.deepcopy(self._raw_data)
 
-    def _find_attachments(self, survey_pages):
+    def _find_attachments(self, survey_pages) -> list:
         attachments = []
 
         for survey_page_name, survey_page in survey_pages.items():
@@ -96,8 +104,44 @@ class Form:
 
         return attachments
 
+    def is_excluded(self) -> (bool, str):
+        """
+        Checks if this form is flagged as excluded.
+
+        :return: (True if flagged as excluded., An alert message if flagged)
+        :rtype: (bool, str)
+        """
+        return is_form_data_excluded(self._raw_data)
+
     @staticmethod
-    def _is_survey_value_attachment(value):
+    def from_blob(blob: Blob):
+        # Check if blob is man-made folder (0 byte object)
+        if blob.size:
+            json_data = blob.download_as_text()
+            logging.info(f"JSON of blob({blob.name}): {json_data}")
+
+            try:
+                form_data = json.loads(json_data)
+                form = Form(form_data)
+            except (KeyError, json.decoder.JSONDecodeError) as exception:
+                logging.error(
+                    f"Invalid form: {blob.name}\n"
+                    f"Exception: {str(exception)}"
+                )
+            else:
+                # Checking if form flagged as excluded.
+                excluded, alert = form.is_excluded()
+                if excluded:
+                    logging.info(str(alert))
+                else:
+                    return form
+        else:
+            logging.info(f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
+
+        return None
+
+    @staticmethod
+    def _is_survey_value_attachment(value) -> bool:
         if isinstance(value, str):
             name, extension = path.splitext(value)
             if extension:

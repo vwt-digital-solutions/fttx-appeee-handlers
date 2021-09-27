@@ -16,21 +16,27 @@ option.
 ### Function Arguments
 There are a few arguments that can be given to this function:
 
-| Field                       | Description                             | Default | Required |
-| :-------------------------- | :-------------------------------------- | :------ | :------: |
-| form_storage_suffix         | Can be used to specify a sub directory. | None    | No       |
-| download_attachment_enabled | Download missing attachments.           | True    | No       |
-| arcgis_update_enabled       | Send entries to ArcGIS when changed.    | True    | No       |
-| arcgis_update_forced        | Always send entries to ArcGIS.          | False   | No       |
-| request_retry_options       | Options for request retry.              | None    | No       |
+| Field                         | Description                                                                      | Default | Required |
+| :--------------------------   | :------------------------------------------------------------------------------- | :------ | :------: |
+| form_storage_suffix           | Can be used to specify a sub directory.                                          | None    | No       |
+| max_time_delta                | Specifies the maximum [timedelta][1] of the blobs, older blobs will be ignored.  | None    | No       |
+| enable_attachment_downloading | Download missing attachments.                                                    | True    | No       |
+| enable_arcgis_updating        | Send entries to ArcGIS when changed.                                             | True    | No       |
+| force_arcgis_updating         | Always send entries to ArcGIS.                                                   | False   | No       |
+| request_retry_options         | Options for request retry.                                                       | None    | No       |
 
-Example (default):
+[1]: https://docs.python.org/3/library/datetime.html#timedelta-objects
+
+Example:
 ```json
 {
     "form_storage_suffix": "/2021/07/21",
-    "download_attachment_enabled": true,
-    "arcgis_update_enabled": true,
-    "arcgis_update_forced": false,
+    "max_time_delta": {
+      "days": 1
+    },
+    "enable_attachment_downloading": true,
+    "enable_arcgis_updating": true,
+    "force_arcgis_updating": false,
     "request_retry_options": {
         "retries": 6,
         "backoff": 10,
