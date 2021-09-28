@@ -44,6 +44,9 @@ def handler(request):
     # Can be used to specify a sub directory.
     form_storage_suffix = arguments.get("form_storage_suffix", "")
 
+    # Range of indexes
+    form_index_range = arguments.get("form_index_range")
+
     # Specifies the maximum age of the blobs, older blobs will be ignored.
     max_time_delta = timedelta(**arguments["max_time_delta"]) if "max_time_delta" in arguments else None
 
@@ -79,6 +82,10 @@ def handler(request):
             bucket_or_name=IMAGE_STORE_BUCKET,
             prefix=ENTRY_FILEPATH_PREFIX + suffix
         ))
+
+    if form_index_range:
+        start, end = form_index_range.split(":")
+        form_blobs = form_blobs[int(start):int(end)]
 
     result = {
         "total_form_count": 0,
