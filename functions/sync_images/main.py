@@ -1,6 +1,6 @@
+import re
 import json
 import logging
-import re
 
 from config import (
     IMAGE_STORE_BUCKET,
@@ -13,6 +13,7 @@ from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
 from functions.common.requests_retry_session import get_requests_session
+from functions.common.utils import unpack_ranges
 from gobits import Gobits
 from google.cloud import storage
 
@@ -84,7 +85,9 @@ def handler(request):
         ))
 
     if form_index_range:
-        start, end = form_index_range.split(":")
+        match = re.match(r"^(\d+):(\d+)$", form_index_range)
+        start = match.group(1)
+        end = match.group(2)
         form_blobs = form_blobs[int(start):int(end)]
 
     result = {
@@ -149,54 +152,6 @@ def handler(request):
             publish_service.publish_form(form, metadata=gobits)
 
     return json.dumps(result), 200
-
-
-def unpack_ranges(pattern) -> list:
-    """
-    Unpacks all possible range combinations.
-
-    Range syntax: [{start}-{end}]
-        start: start of the range (included)
-        end: end of the range (excluded)
-    Range example: [1-10]
-
-    While unpacking the ranges will be formatted to stringified numbers.
-    There numbers will be justified based on min(len({start}), len({end}))).
-
-    Example 1: '[8-11]'
-    Result 1: ['8', '9', '10']
-
-    Example 2: '[08-11]'
-    Result 2: ['08', '09', '10']
-
-    Example 3: 'A:[1-3] B:[1-3]'
-    Result 3: ['A:1 B:1', 'A:1 B:2', 'A:2 B:1', 'A:2 B:2']
-
-    :param pattern: The pattern to unpack.
-    :type pattern: str:
-
-    :return: A list of all possible range combinations.
-    :rtype: list[str]
-    """
-    range_regex = r"\[(\d+)-(\d+)]"
-    match = re.search(range_regex, pattern)
-
-    suffixes = []
-    if match:
-        start = match.group(1)
-        end = match.group(2)
-        justified = min(len(start), len(end))
-
-        for i in range(int(start), int(end)):
-            prefix = pattern[:match.start(0)]
-            suffix = pattern[match.end(0):]
-            number = str(i).rjust(justified, "0")
-            string = f"{prefix}{number}{suffix}"
-            suffixes.extend(unpack_ranges(string))
-    else:
-        suffixes.append(pattern)
-
-    return suffixes
 
 
 def get_request_arguments(request):
