@@ -74,7 +74,7 @@ def handler(request):
 
     # Getting all form blobs
     form_blobs = []
-    for suffix in get_possible_suffixes(form_storage_suffix):
+    for suffix in unpack_ranges(form_storage_suffix):
         form_blobs.extend(storage_client.list_blobs(
             bucket_or_name=IMAGE_STORE_BUCKET,
             prefix=ENTRY_FILEPATH_PREFIX + suffix
@@ -88,7 +88,7 @@ def handler(request):
     }
 
     logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
-    logging.info(f"Found blobs: {str(len(form_blobs))}")
+    logging.info(f"Found blobs: {len(form_blobs)}")
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
@@ -144,25 +144,50 @@ def handler(request):
     return json.dumps(result), 200
 
 
-def get_possible_suffixes(patterned_suffix) -> list:
+def unpack_ranges(pattern) -> list:
+    """
+    Unpacks all possible range combinations.
+
+    Range syntax: [{start}-{end}]
+        start: start of the range (included)
+        end: end of the range (excluded)
+    Range example: [1-10]
+
+    While unpacking the ranges will be formatted to stringified numbers.
+    There numbers will be justified based on min(len({start}), len({end}))).
+
+    Example 1: '[8-11]'
+    Result 1: ['8', '9', '10']
+
+    Example 2: '[08-11]'
+    Result 2: ['08', '09', '10']
+
+    Example 3: 'A:[1-3] B:[1-3]'
+    Result 3: ['A:1 B:1', 'A:1 B:2', 'A:2 B:1', 'A:2 B:2']
+
+    :param pattern: The pattern to unpack.
+    :type pattern: str:
+
+    :return: A list of all possible range combinations.
+    :rtype: list[str]
+    """
     range_regex = r"\[(\d+)-(\d+)]"
+    match = re.search(range_regex, pattern)
+
     suffixes = []
+    if match:
+        start = match.group(1)
+        end = match.group(2)
+        justified = min(len(start), len(end))
 
-    match = re.search(range_regex, patterned_suffix)
-
-    if not match:
-        return [patterned_suffix]
-
-    start = match.group(1)
-    end = match.group(2)
-    justified = min(len(start), len(end))
-
-    for i in range(int(start), int(end)):
-        prefix = patterned_suffix[0:match.start(0)]
-        suffix = patterned_suffix[match.end(0):len(patterned_suffix)]
-        number = str(i).rjust(justified, "0")
-        string = f"{prefix}{number}{suffix}"
-        suffixes.extend(get_possible_suffixes(string))
+        for i in range(int(start), int(end)):
+            prefix = pattern[:match.start(0)]
+            suffix = pattern[match.end(0):]
+            number = str(i).rjust(justified, "0")
+            string = f"{prefix}{number}{suffix}"
+            suffixes.extend(unpack_ranges(string))
+    else:
+        suffixes.append(pattern)
 
     return suffixes
 
