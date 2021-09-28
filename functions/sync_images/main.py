@@ -89,6 +89,7 @@ def handler(request):
         start = match.group(1)
         end = match.group(2)
         form_blobs = form_blobs[int(start):int(end)]
+        logging.info(f"Index range: start: {start} ({form_blobs[0].name}), end: {end} ({form_blobs[-1].name})")
 
     result = {
         "total_form_count": 0,
