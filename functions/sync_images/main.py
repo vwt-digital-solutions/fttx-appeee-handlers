@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from config import (
     IMAGE_STORE_BUCKET,
@@ -72,11 +73,12 @@ def handler(request):
     publish_service = PublishService(TOPIC_NAME, **request_retry_options)
 
     # Getting all form blobs
-    form_blobs = storage_client.list_blobs(
-        bucket_or_name=IMAGE_STORE_BUCKET,
-        prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix
-    )
-    form_blobs = list(form_blobs)
+    form_blobs = []
+    for suffix in get_possible_suffixes(form_storage_suffix):
+        form_blobs.extend(storage_client.list_blobs(
+            bucket_or_name=IMAGE_STORE_BUCKET,
+            prefix=ENTRY_FILEPATH_PREFIX + suffix
+        ))
 
     result = {
         "total_form_count": 0,
@@ -140,6 +142,44 @@ def handler(request):
             publish_service.publish_form(form, metadata=gobits)
 
     return json.dumps(result), 200
+
+
+def get_possible_suffixes(patterned_suffix) -> list:
+    path_regex = r"^/(\d{4}|\[\d+-\d+])/(\d{2}|\[\d+-\d+])/(\d{2}|\[\d+-\d+])$"
+    suffixes = []
+    result = re.search(path_regex, patterned_suffix)
+
+    if result:
+        year = result.group(1)
+        month = result.group(2)
+        day = result.group(3)
+
+        years = get_range(year)
+        months = get_range(month)
+        days = get_range(day)
+
+        if len(years) == len(months) == len(days) == 1:
+            suffixes.append(f"/{year}/{month}/{day}")
+        elif len(years) > 1:
+            for i in years:
+                suffixes.extend(get_possible_suffixes(f"/{i:04}/{month}/{day}"))
+        elif len(months) > 1:
+            for i in months:
+                suffixes.extend(get_possible_suffixes(f"/{year}/{i:02}/{day}"))
+        elif len(days) > 1:
+            for i in days:
+                suffixes.extend(get_possible_suffixes(f"/{year}/{month}/{i:02}"))
+
+    return suffixes
+
+
+def get_range(range_pattern):
+    range_regex = r"^\[(\d+)-(\d+)]$"
+    result = re.search(range_regex, range_pattern)
+    if result:
+        return range(int(result.group(1)), int(result.group(2)))
+    else:
+        return [int(range_pattern)]
 
 
 def get_request_arguments(request):
