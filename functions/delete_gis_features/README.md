@@ -1,0 +1,1 @@
+This folder contains scripts needed to delete features from gis detected by sync_images.
