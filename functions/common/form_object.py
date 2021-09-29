@@ -97,7 +97,7 @@ class Form:
                         survey_page_name,
                         survey_field,
                         f"{self.attachment_bucket_base_path}/{survey_field}_{survey_value}",
-                        f"{self.attachment_download_base_url}/{survey_value}"
+                        f"{self.attachment_download_base_url}{survey_value}"
                     )
 
                     attachments.append(attachment)
