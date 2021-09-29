@@ -18,7 +18,8 @@ There are a few arguments that can be given to this function:
 
 | Field                         | Description                                                                      | Default | Required |
 | :--------------------------   | :------------------------------------------------------------------------------- | :------ | :------: |
-| form_storage_suffix           | Can be used to specify a sub directory.                                          | None    | No       |
+| form_storage_suffix           | Can be used to specify a sub directory. (Supports ranges)                        | None    | No       |
+| form_index_range              | Range of indexes to be processed. (Handy for batches)                            | None    | No       |
 | max_time_delta                | Specifies the maximum [timedelta][1] of the blobs, older blobs will be ignored.  | None    | No       |
 | enable_attachment_downloading | Download missing attachments.                                                    | True    | No       |
 | enable_arcgis_updating        | Send entries to ArcGIS when changed.                                             | True    | No       |
@@ -30,7 +31,8 @@ There are a few arguments that can be given to this function:
 Example:
 ```json
 {
-    "form_storage_suffix": "/2021/07/21",
+    "form_storage_suffix": "/2021/[1-13]/21",
+    "form_index_range": "0:100",
     "max_time_delta": {
       "days": 1
     },

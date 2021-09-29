@@ -1,3 +1,4 @@
+import re
 import json
 import logging
 
@@ -12,6 +13,7 @@ from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
 from functions.common.requests_retry_session import get_requests_session
+from functions.common.utils import unpack_ranges
 from gobits import Gobits
 from google.cloud import storage
 
@@ -43,6 +45,9 @@ def handler(request):
     # Can be used to specify a sub directory.
     form_storage_suffix = arguments.get("form_storage_suffix", "")
 
+    # Range of indexes
+    form_index_range = arguments.get("form_index_range")
+
     # Specifies the maximum age of the blobs, older blobs will be ignored.
     max_time_delta = timedelta(**arguments["max_time_delta"]) if "max_time_delta" in arguments else None
 
@@ -72,11 +77,23 @@ def handler(request):
     publish_service = PublishService(TOPIC_NAME, **request_retry_options)
 
     # Getting all form blobs
-    form_blobs = storage_client.list_blobs(
-        bucket_or_name=IMAGE_STORE_BUCKET,
-        prefix=ENTRY_FILEPATH_PREFIX + form_storage_suffix
-    )
-    form_blobs = list(form_blobs)
+    form_blobs = []
+    for suffix in unpack_ranges(form_storage_suffix):
+        form_blobs.extend(storage_client.list_blobs(
+            bucket_or_name=IMAGE_STORE_BUCKET,
+            prefix=ENTRY_FILEPATH_PREFIX + suffix
+        ))
+    
+    logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
+    logging.info(f"Found blobs: {len(form_blobs)}")
+
+    if form_index_range:
+        match = re.match(r"^(\d+):(\d+)$", form_index_range)
+        if match:
+            start = match.group(1)
+            end = match.group(2)
+            form_blobs = form_blobs[int(start):int(end)]
+            logging.info(f"Index range: start: {start} ({form_blobs[0].name}), end: {end} ({form_blobs[-1].name})")
 
     result = {
         "total_form_count": 0,
@@ -84,9 +101,6 @@ def handler(request):
         "missing_attachment_count": 0,
         "downloaded_attachment_count": 0
     }
-
-    logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
-    logging.info(f"Found blobs: {str(len(form_blobs))}")
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
