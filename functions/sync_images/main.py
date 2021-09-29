@@ -83,6 +83,9 @@ def handler(request):
             bucket_or_name=IMAGE_STORE_BUCKET,
             prefix=ENTRY_FILEPATH_PREFIX + suffix
         ))
+    
+    logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
+    logging.info(f"Found blobs: {len(form_blobs)}")
 
     if form_index_range:
         match = re.match(r"^(\d+):(\d+)$", form_index_range)
@@ -98,9 +101,6 @@ def handler(request):
         "missing_attachment_count": 0,
         "downloaded_attachment_count": 0
     }
-
-    logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
-    logging.info(f"Found blobs: {len(form_blobs)}")
 
     # Looping through all forms to check them.
     for form_blob in form_blobs:
