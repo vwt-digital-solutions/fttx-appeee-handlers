@@ -37,7 +37,7 @@ class PublishService:
             # Publish message to topic to be picked up by the ArcGIS interface.
             message_to_publish = {
                 "appee_survey": data,
-                "gobits": metadata.to_json()
+                "gobits": [metadata.to_json()]
             }
 
             logging.info("Publishing form to ArcGIS interface.")
