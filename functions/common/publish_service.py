@@ -32,15 +32,18 @@ class PublishService:
 
         # Converting/downloading the coordinates for this form.
         data = self.coordinate_service.form_to_geojson(form)
+        if data:
 
-        # Publish message to topic to be picked up by the ArcGIS interface.
-        message_to_publish = {"appee_survey": data}
+            # Publish message to topic to be picked up by the ArcGIS interface.
+            message_to_publish = {
+                "appee_survey": data,
+                "gobits": metadata.to_json()
+            }
 
-        if metadata:
-            message_to_publish["gobits"] = [metadata.to_json()]
+            logging.info("Publishing form to ArcGIS interface.")
 
-        logging.info("Publishing form to ArcGIS interface.")
-
-        self._publisher.publish(
-            self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))
-        )
+            self._publisher.publish(
+                self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))
+            )
+        else:
+            logging.error("Could not get data to send to ArcGIS, skipping...")

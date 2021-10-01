@@ -15,6 +15,7 @@ from requests.exceptions import ConnectionError, HTTPError
 from requests_retry_session import get_requests_session
 from utils import get_secret, get_from_path
 from form_object import Form
+from typing import Optional
 
 
 class CoordinateService:
@@ -22,9 +23,12 @@ class CoordinateService:
         self.requests_session = get_requests_session(**kwargs)
         self.token = self._request_authentication_token()
 
-    def form_to_geojson(self, form: Form):
+    def form_to_geojson(self, form: Form) -> Optional[dict]:
         address = self._extract_form_address(form)
         latitude, longitude = self._find_house_coordinates(**address)
+
+        if latitude is None or longitude is None:
+            return None
 
         return {
             "type": "FeatureCollection",
@@ -93,7 +97,7 @@ class CoordinateService:
             Latitude of the specified address in epsg4326 format.,
             Longitude of the specified address in epsg4326 format
         )
-        :rtype: (float, float)
+        :rtype: float | None, float | None
         """
 
         query_string = f"postcode='{zip_code}' AND huisnummer='{house_number}'"
@@ -130,11 +134,11 @@ class CoordinateService:
                 else:
                     logging.error("Could not find coordinates in feature")
             else:
-                logging.info("Feature not found on feature server, skipping this.")
+                logging.info(f"Feature with postcode '{zip_code}' and huisnummer '{house_number}' not found.")
         else:
             logging.error(f"Error occurred when requesting feature layer: {str(result)}")
 
-        raise LookupError("Could not get coordinates from form.")
+        return None, None
 
     @staticmethod
     def _extract_form_address(form: Form) -> dict:
