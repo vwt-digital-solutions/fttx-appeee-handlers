@@ -1,12 +1,11 @@
+from typing import Optional
 from enum import Enum, unique
 
 from config import (
-    EXCLUDE_RULES
+    EXCLUDE_RULES as EXCLUDE_RULES_DICT
 )
 
 from utils import get_from_path
-
-RULES = list()
 
 
 @unique
@@ -39,8 +38,8 @@ class FormRule:
         return self._rule_type.eval([value, *self._rule_type_args]) ^ self._invert
 
 
-def is_form_data_excluded(data: dict) -> (bool, str):
-    for rule in RULES:
+def is_passing_rules(data: dict, rules: list) -> (bool, Optional[str]):
+    for rule in rules:
         passed = False
         for sub_rule in rule["rule_set"]:
             if not sub_rule.eval(data):
@@ -58,17 +57,31 @@ def is_form_data_excluded(data: dict) -> (bool, str):
     return False, None
 
 
-for rule in EXCLUDE_RULES:
-    rule_set = list()
-    for sub_rule in rule.get("rule_set", []):
-        rule_set.append(FormRule(
-            target=sub_rule["target"],
-            rule_type=RuleType[sub_rule["type"].upper()],
-            rule_type_args=sub_rule.get("type_args", []),
-            invert=sub_rule.get("invert", False)
-        ))
+def is_passing_exclude_rules(data: dict) -> (bool, Optional[str]):
+    return is_passing_rules(data, EXCLUDE_RULES)
 
-    RULES.append({
-        "alert": rule.get("alert", None),
-        "rule_set": rule_set
-    })
+
+def rule_from_dict(data: dict) -> FormRule:
+    return FormRule(
+        target=data["target"],
+        rule_type=RuleType[data["type"].upper()],
+        rule_type_args=data.get("type_args", []),
+        invert=data.get("invert", False)
+    )
+
+
+def rule_alerts_from_dict(data: dict) -> list:
+    rules = []
+    for rule in data:
+        rule_set = list()
+        for sub_rule in rule.get("rule_set", []):
+            rule_set.append(rule_from_dict(sub_rule))
+
+        rules.append({
+            "alert": rule.get("alert", None),
+            "rule_set": rule_set
+        })
+    return rules
+
+
+EXCLUDE_RULES = rule_alerts_from_dict(EXCLUDE_RULES_DICT)

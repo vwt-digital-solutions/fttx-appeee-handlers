@@ -97,6 +97,31 @@ def get_from_path(dictionary: dict, var_path: str):
     return current
 
 
+def get_request_arguments(request):
+    """
+    Extracts all arguments from HTTP arguments and JSON body.
+
+    :param request: The request object to extract from.
+    :type request: flask.Request
+
+    :return: A dictionary of all arguments.
+    :rtype: dict
+    """
+
+    arguments = dict()
+    if request:
+        json_body = request.get_json(silent=True)
+        http_arguments = request.args
+
+        for key, value in json_body.items():
+            arguments[key] = value
+
+        for key, value in http_arguments.items():
+            arguments[key] = value
+
+    return arguments
+
+
 def get_secret(project_id, secret_id):
     """
     Returns a Secret Manager secret.
