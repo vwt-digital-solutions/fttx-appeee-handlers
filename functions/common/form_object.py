@@ -141,7 +141,7 @@ class Form:
             else:
                 # Checking if form flagged as excluded.
                 excluded, alert = form.is_excluded()
-                if excluded:
+                if excluded and alert:
                     logging.info(str(alert))
                 else:
                     return form

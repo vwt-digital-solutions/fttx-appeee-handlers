@@ -61,9 +61,10 @@ def handler(request):
         success, alert = is_passing_rules(raw_form_data, query_rules)
 
         if success:
-            logging.info(f"BLOB '{form_blob.name}' matched the query.")
-            logging.info(str(alert))
             results["matching_forms"].append(form_blob.name)
+            logging.info(f"BLOB '{form_blob.name}' matched the query.")
+            if alert:
+                logging.info(str(alert))
 
     return json.dumps(results), 200
 
