@@ -13,7 +13,7 @@ from functions.common.attachment_service import AttachmentService
 from functions.common.form_object import Form
 from functions.common.publish_service import PublishService
 from functions.common.requests_retry_session import get_requests_session
-from functions.common.utils import unpack_ranges
+from functions.common.utils import unpack_ranges, get_request_arguments
 from gobits import Gobits
 from google.cloud import storage
 
@@ -83,7 +83,7 @@ def handler(request):
             bucket_or_name=IMAGE_STORE_BUCKET,
             prefix=ENTRY_FILEPATH_PREFIX + suffix
         ))
-    
+
     logging.info(f"Getting all blobs from: {ENTRY_FILEPATH_PREFIX + form_storage_suffix}")
     logging.info(f"Found blobs: {len(form_blobs)}")
 
@@ -154,31 +154,6 @@ def handler(request):
             publish_service.publish_form(form, metadata=gobits)
 
     return json.dumps(result), 200
-
-
-def get_request_arguments(request):
-    """
-    Extracts all arguments from HTTP arguments and JSON body.
-
-    :param request: The request object to extract from.
-    :type request: flask.Request
-
-    :return: A dictionary of all arguments.
-    :rtype: dict
-    """
-
-    arguments = dict()
-    if request:
-        json_body = request.get_json(silent=True)
-        http_arguments = request.args
-
-        for key, value in json_body.items():
-            arguments[key] = value
-
-        for key, value in http_arguments.items():
-            arguments[key] = value
-
-    return arguments
 
 
 if __name__ == "__main__":
