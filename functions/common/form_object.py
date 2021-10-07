@@ -16,11 +16,12 @@ from constant import (
     IMAGE_FILE_EXTENSIONS
 )
 
+from typing import Optional
 from utils import get_from_path
 from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
-from form_rule import is_form_data_excluded
+from form_rule import is_passing_exclude_rules, is_passing_rules as is_passing_form_rules
 
 
 class Attachment:
@@ -104,14 +105,23 @@ class Form:
 
         return attachments
 
-    def is_excluded(self) -> (bool, str):
+    def is_passing_rules(self, rules: list) -> (bool, Optional[str]):
+        """
+        Checks if this form is passing provided rules.
+
+        :return: (True if passing rules., An alert message if passed)
+        :rtype: (bool, str | None)
+        """
+        return is_passing_form_rules(self._raw_data, rules)
+
+    def is_excluded(self) -> (bool, Optional[str]):
         """
         Checks if this form is flagged as excluded.
 
         :return: (True if flagged as excluded., An alert message if flagged)
         :rtype: (bool, str)
         """
-        return is_form_data_excluded(self._raw_data)
+        return is_passing_exclude_rules(self._raw_data)
 
     @staticmethod
     def from_blob(blob: Blob):
@@ -131,7 +141,7 @@ class Form:
             else:
                 # Checking if form flagged as excluded.
                 excluded, alert = form.is_excluded()
-                if excluded:
+                if excluded and alert:
                     logging.info(str(alert))
                 else:
                     return form
