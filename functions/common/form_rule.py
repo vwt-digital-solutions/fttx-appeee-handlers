@@ -40,14 +40,16 @@ class FormRule:
 
 def is_passing_rules(data: dict, rules: list) -> (bool, Optional[str]):
     for rule in rules:
-        passed = False
+        failed = False
         for sub_rule in rule["rule_set"]:
             if not sub_rule.eval(data):
-                passed = True
+                failed = True
                 break
 
-        if not passed:
+        if not failed:
             alert = rule.get("alert", {})
+            if not alert:
+                return True, None
             variables = alert.get("variables", {})
             parsed_variables = {}
             for key, value in variables.items():
