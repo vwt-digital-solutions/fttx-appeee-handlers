@@ -39,6 +39,8 @@ def handler(request):
         "blob_name": "$BLOB_NAME"
     })
 
+    result_limit = arguments.get("result_limit", 0)
+
     storage_client = storage.Client()
 
     # Getting all form blobs
@@ -53,6 +55,7 @@ def handler(request):
         "matching_forms": []
     }
 
+    found = 0
     logging.info(f"Scanning '{len(form_blobs)}' BLOBs.")
 
     for form_blob in form_blobs:
@@ -75,6 +78,9 @@ def handler(request):
             if alert:
                 logging.info(str(alert))
             results["matching_forms"].append(output)
+            found += 1
+            if result_limit and found >= result_limit:
+                break
 
     return json.dumps(results), 200
 
