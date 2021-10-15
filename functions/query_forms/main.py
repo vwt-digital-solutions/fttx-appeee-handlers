@@ -8,7 +8,7 @@ from config import (
 
 from google.cloud import storage
 
-from functions.common.utils import get_request_arguments, unpack_ranges
+from functions.common.utils import get_request_arguments, unpack_ranges, get_from_path
 from functions.common.form_rule import rule_alerts_from_dict, is_passing_rules
 from functions.common.requests_retry_session import get_requests_session
 
@@ -35,6 +35,12 @@ def handler(request):
 
     query_rules = rule_alerts_from_dict(arguments.get("query", []))
 
+    output_format = arguments.get("output_format", {
+        "blob_name": "$BLOB_NAME"
+    })
+
+    result_limit = arguments.get("result_limit", 0)
+
     storage_client = storage.Client()
 
     # Getting all form blobs
@@ -49,6 +55,7 @@ def handler(request):
         "matching_forms": []
     }
 
+    found = 0
     logging.info(f"Scanning '{len(form_blobs)}' BLOBs.")
 
     for form_blob in form_blobs:
@@ -61,10 +68,19 @@ def handler(request):
         success, alert = is_passing_rules(raw_form_data, query_rules)
 
         if success:
-            results["matching_forms"].append(form_blob.name)
+            output = output_format.copy()
+            for key, value in output.items():
+                if "$BLOB_NAME" in value:
+                    output[key] = value.replace("$BLOB_NAME", form_blob.name)
+                else:
+                    output[key] = get_from_path(raw_form_data, value)
             logging.info(f"BLOB '{form_blob.name}' matched the query.")
             if alert:
                 logging.info(str(alert))
+            results["matching_forms"].append(output)
+            found += 1
+            if result_limit and found >= result_limit:
+                break
 
     return json.dumps(results), 200
 

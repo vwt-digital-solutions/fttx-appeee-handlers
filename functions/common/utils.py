@@ -75,6 +75,7 @@ def get_from_path(dictionary: dict, var_path: str):
     :type var_path: str:
 
     :return: Returns a variable based on the specified dictionary and path.
+    :rtype: int | float | bool | str | list | dict
     """
 
     key_list = var_path.split("/")
