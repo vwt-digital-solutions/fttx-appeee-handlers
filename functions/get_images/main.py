@@ -3,7 +3,7 @@ import logging
 
 from config import (
     ENTRY_FILEPATH_PREFIX,
-    TOPIC_NAME
+    TOPIC_NAME_FALLBACK
 )
 
 from functions.common.form_object import Form
@@ -49,13 +49,14 @@ def handler(data, context):
 
     # Setup services
     attachment_service = AttachmentService(storage_client)
-    publish_service = PublishService(TOPIC_NAME)
+    publish_service = PublishService(TOPIC_NAME_FALLBACK)
 
     # Download images
     logging.info("Downloading images")
     for attachment in form.attachments:
         if attachment_service.exists(attachment):
-            logging.warning(f"Image '{attachment.bucket_path}' already exists, skipping.")
+            logging.warning(
+                f"Image '{attachment.bucket_path}' already exists, skipping.")
         else:
             success, response = attachment_service.download(attachment)
             if not success:
