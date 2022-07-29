@@ -8,7 +8,8 @@ from config import (
     COORDINATE_SERVICE,
     COORDINATE_SERVICE_AUTHENTICATION,
     COORDINATE_SERVICE_LATLON,
-    COORDINATE_SERVICE_KEYFIELD
+    COORDINATE_SERVICE_KEYFIELD,
+    COORDINATE_SERVICE_KEYFIELD_FALLBACK  # Disgusting
 )
 
 from requests.exceptions import ConnectionError, HTTPError
@@ -144,6 +145,9 @@ class CoordinateService:
     def _extract_form_address(form: Form) -> dict:
         regex = r"^(\d{4}[A-Z]{2})(\d+)(?:_(.+))?$"
         key = get_from_path(form.to_dict(), COORDINATE_SERVICE_KEYFIELD)
+        
+        if not key:
+            key = get_from_path(form.to_dict(), COORDINATE_SERVICE_KEYFIELD_FALLBACK)
 
         result = re.search(regex, key)
 

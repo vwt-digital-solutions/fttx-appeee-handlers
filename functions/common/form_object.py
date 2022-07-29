@@ -105,6 +105,10 @@ class Form:
 
         return attachments
 
+    def get_topic(self) -> Optional[str]:
+        
+
+
     def is_passing_rules(self, rules: list) -> (bool, Optional[str]):
         """
         Checks if this form is passing provided rules.
@@ -133,18 +137,12 @@ class Form:
             try:
                 form_data = json.loads(json_data)
                 form = Form(form_data)
+                return form
             except (KeyError, json.decoder.JSONDecodeError) as exception:
                 logging.error(
                     f"Invalid form: {blob.name}\n"
                     f"Exception: {str(exception)}"
                 )
-            else:
-                # Checking if form flagged as excluded.
-                excluded, alert = form.is_excluded()
-                if excluded and alert:
-                    logging.info(str(alert))
-                else:
-                    return form
         else:
             logging.info(f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
 

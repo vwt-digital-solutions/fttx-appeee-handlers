@@ -6,12 +6,16 @@ from coordinate_service import CoordinateService
 from form_object import Form
 from google.cloud.pubsub_v1 import PublisherClient
 from retry import retry
+from form_rule import (
+    TOPIC_ROUTE_RULES,
+    is_passing_rule
+)
 
 
 class PublishService:
-    def __init__(self, topic_name, **kwargs):
+    def __init__(self, topic_name_fallback, **kwargs):
         self._publisher = PublisherClient()
-        self._topic_name = topic_name
+        self._topic_name_fallback = topic_name_fallback
         self.coordinate_service = CoordinateService(**kwargs)
 
     @retry(tries=5, delay=5, backoff=2, logger=None)
@@ -42,8 +46,14 @@ class PublishService:
 
             logging.info("Publishing form to ArcGIS interface.")
 
+            topic_name = self._topic_name_fallback
+            for route_rule in TOPIC_ROUTE_RULES:
+                if is_passing_rule(data, route_rule):
+                    topic_name = route_rule["data"]["topic_name"]
+
             self._publisher.publish(
-                self._topic_name, bytes(json.dumps(message_to_publish).encode("utf-8"))
+                topic_name, bytes(json.dumps(
+                    message_to_publish).encode("utf-8"))
             )
         else:
             logging.error("Could not get data to send to ArcGIS, skipping...")
