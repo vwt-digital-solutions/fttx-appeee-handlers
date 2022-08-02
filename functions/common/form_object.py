@@ -21,7 +21,6 @@ from utils import get_from_path
 from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
-from form_rule import is_passing_rules as is_passing_form_rules
 
 
 class Attachment:
@@ -106,18 +105,6 @@ class Form:
                     attachments.append(attachment)
 
         return attachments
-
-    def get_topic(self) -> Optional[str]:
-        ...
-
-    def is_passing_rules(self, rules: list) -> (bool, Optional[str]):
-        """
-        Checks if this form is passing provided rules.
-
-        :return: (True if passing rules., An alert message if passed)
-        :rtype: (bool, str | None)
-        """
-        return is_passing_form_rules(self._raw_data, rules)
 
     @staticmethod
     def from_blob(blob: Blob):
