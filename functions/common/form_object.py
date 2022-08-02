@@ -106,7 +106,7 @@ class Form:
         return attachments
 
     def get_topic(self) -> Optional[str]:
-        
+        ...
 
 
     def is_passing_rules(self, rules: list) -> (bool, Optional[str]):
