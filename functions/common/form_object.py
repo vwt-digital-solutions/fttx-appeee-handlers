@@ -21,13 +21,14 @@ from utils import get_from_path
 from google.cloud.storage.blob import Blob
 from os import path
 from urllib.parse import quote_plus
-from form_rule import is_passing_exclude_rules, is_passing_rules as is_passing_form_rules
+from form_rule import is_passing_rules as is_passing_form_rules
 
 
 class Attachment:
     """
     This class represents a form's attachment.
     """
+
     def __init__(self, category, type, bucket_path, download_url):
         self.category = category
         self.type = type
@@ -39,6 +40,7 @@ class Form:
     """
     This class represents a filled in APPEEE form/survey.
     """
+
     def __init__(self, data):
         provider_id = data[PROVIDER_ID_KEY]
         ds_row_id = data[ENTRY_KEY][DS_ROW_ID_KEY]
@@ -108,7 +110,6 @@ class Form:
     def get_topic(self) -> Optional[str]:
         ...
 
-
     def is_passing_rules(self, rules: list) -> (bool, Optional[str]):
         """
         Checks if this form is passing provided rules.
@@ -117,15 +118,6 @@ class Form:
         :rtype: (bool, str | None)
         """
         return is_passing_form_rules(self._raw_data, rules)
-
-    def is_excluded(self) -> (bool, Optional[str]):
-        """
-        Checks if this form is flagged as excluded.
-
-        :return: (True if flagged as excluded., An alert message if flagged)
-        :rtype: (bool, str)
-        """
-        return is_passing_exclude_rules(self._raw_data)
 
     @staticmethod
     def from_blob(blob: Blob):
@@ -144,7 +136,8 @@ class Form:
                     f"Exception: {str(exception)}"
                 )
         else:
-            logging.info(f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
+            logging.info(
+                f"Blob '{blob.name}' is a zero-byte object (folder?), skipping...")
 
         return None
 
