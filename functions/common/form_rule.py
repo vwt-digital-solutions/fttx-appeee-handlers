@@ -41,8 +41,8 @@ class FormRule:
 def is_passing_rule(data: dict, rule: dict) -> bool:
     for sub_rule in rule["rule_set"]:
         if not sub_rule.eval(data):
-            return True
-    return False
+            return False
+    return True
 
 
 def rule_from_dict(data: dict) -> FormRule:

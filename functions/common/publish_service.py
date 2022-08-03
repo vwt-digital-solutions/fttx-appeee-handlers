@@ -37,25 +37,25 @@ class PublishService:
         # Converting/downloading the coordinates for this form.
         data = self.coordinate_service.form_to_geojson(form)
         if data:
-
             # Publish message to topic to be picked up by the ArcGIS interface.
             message_to_publish = {
                 "appee_survey": data,
                 "gobits": [metadata.to_json()]
             }
 
-            logging.info("Publishing form to ArcGIS interface.")
-
+            raw_form_data = form.to_dict()
             topic_name = self._topic_name_fallback
             for route_rule in TOPIC_ROUTE_RULES:
-                if is_passing_rule(data, route_rule):
+                if is_passing_rule(raw_form_data, route_rule):
                     topic_name = route_rule["data"]["topic_name"]
+
+            logging.info(f"Publishing form to ArcGIS interface ({topic_name}).")
 
             future = self._publisher.publish(
                 topic_name, bytes(json.dumps(
                     message_to_publish).encode("utf-8"))
             )
 
-            logging.info(f"Published form to ArcGIS ({topic_name}) with ID {future.result()}")
+            logging.info(f"Published form to ArcGIS interface ({topic_name}) with ID {future.result()}")
         else:
             logging.error("Could not get data to send to ArcGIS, skipping...")
