@@ -51,9 +51,11 @@ class PublishService:
                 if is_passing_rule(data, route_rule):
                     topic_name = route_rule["data"]["topic_name"]
 
-            self._publisher.publish(
+            future = self._publisher.publish(
                 topic_name, bytes(json.dumps(
                     message_to_publish).encode("utf-8"))
             )
+
+            logging.info(f"Published form to ArcGIS with ID {future.result()}")
         else:
             logging.error("Could not get data to send to ArcGIS, skipping...")
