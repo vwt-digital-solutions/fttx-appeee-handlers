@@ -56,6 +56,6 @@ class PublishService:
                     message_to_publish).encode("utf-8"))
             )
 
-            logging.info(f"Published form to ArcGIS with ID {future.result()}")
+            logging.info(f"Published form to ArcGIS ({topic_name}) with ID {future.result()}")
         else:
             logging.error("Could not get data to send to ArcGIS, skipping...")
