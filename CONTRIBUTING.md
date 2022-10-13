@@ -9,3 +9,4 @@ Read these guidelines before creating issues or requests.
 - :mailbox: [Contact us](https://vwt-digital.github.io/#contact)
 - :house: [About us](https://vwt-digital.github.io/)
 - :zap: [Github](https://github.com/vwt-digital)
+
