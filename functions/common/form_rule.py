@@ -2,7 +2,7 @@ from typing import Optional
 from enum import Enum, unique
 
 from config import (
-    EXCLUDE_RULES as EXCLUDE_RULES_DICT
+    TOPIC_ROUTE_RULES as TOPIC_ROUTE_RULE_LIST
 )
 
 from utils import get_from_path
@@ -38,29 +38,11 @@ class FormRule:
         return self._rule_type.eval([value, *self._rule_type_args]) ^ self._invert
 
 
-def is_passing_rules(data: dict, rules: list) -> (bool, Optional[str]):
-    for rule in rules:
-        failed = False
-        for sub_rule in rule["rule_set"]:
-            if not sub_rule.eval(data):
-                failed = True
-                break
-
-        if not failed:
-            alert = rule.get("alert", {})
-            if not alert:
-                return True, None
-            variables = alert.get("variables", {})
-            parsed_variables = {}
-            for key, value in variables.items():
-                parsed_variables[key] = get_from_path(data, value)
-
-            return True, alert.get("message", "").format(**parsed_variables)
-    return False, None
-
-
-def is_passing_exclude_rules(data: dict) -> (bool, Optional[str]):
-    return is_passing_rules(data, EXCLUDE_RULES)
+def is_passing_rule(data: dict, rule: dict) -> bool:
+    for sub_rule in rule["rule_set"]:
+        if not sub_rule.eval(data):
+            return False
+    return True
 
 
 def rule_from_dict(data: dict) -> FormRule:
@@ -72,18 +54,22 @@ def rule_from_dict(data: dict) -> FormRule:
     )
 
 
-def rule_alerts_from_dict(data: dict) -> list:
-    rules = []
-    for rule in data:
-        rule_set = list()
-        for sub_rule in rule.get("rule_set", []):
-            rule_set.append(rule_from_dict(sub_rule))
+def rule_from_dict(rule: dict) -> list:
+    rule_set = list()
+    for sub_rule in rule.get("rule_set", []):
+        rule_set.append(
+            FormRule(
+                target=sub_rule["target"],
+                rule_type=RuleType[sub_rule["type"].upper()],
+                rule_type_args=sub_rule.get("type_args", []),
+                invert=sub_rule.get("invert", False)
+            )
+        )
 
-        rules.append({
-            "alert": rule.get("alert", None),
-            "rule_set": rule_set
-        })
-    return rules
+    return {
+        "data": rule.get("data", {}),
+        "rule_set": rule_set
+    }
 
 
-EXCLUDE_RULES = rule_alerts_from_dict(EXCLUDE_RULES_DICT)
+TOPIC_ROUTE_RULES = [rule_from_dict(rule) for rule in TOPIC_ROUTE_RULE_LIST]

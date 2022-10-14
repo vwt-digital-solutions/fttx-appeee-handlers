@@ -4,7 +4,7 @@ import logging
 
 from config import (
     IMAGE_STORE_BUCKET,
-    TOPIC_NAME,
+    TOPIC_NAME_FALLBACK,
     ENTRY_FILEPATH_PREFIX
 )
 
@@ -74,7 +74,7 @@ def handler(request):
 
     storage_client = storage.Client()
     attachment_service = AttachmentService(storage_client, **request_retry_options)
-    publish_service = PublishService(TOPIC_NAME, **request_retry_options)
+    publish_service = PublishService(TOPIC_NAME_FALLBACK, **request_retry_options)
 
     # Getting all form blobs
     form_blobs = []
