@@ -3,12 +3,16 @@ name: Validated
 on:
   push:
     branches: [develop]
+  pull_request:
+    branches:
+      - master
 
 jobs:
   Validated:
     runs-on: ubuntu-latest
     steps:
       - name: Validation
+        if: ${{ false }}
         run: |
           STR='✓ changes have been validated'
           if ! [[ "${{ github.event.head_commit.message }}" =~ .*"$STR".* ]];
